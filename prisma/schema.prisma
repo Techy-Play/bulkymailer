@@ -1,0 +1,187 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  OWNER
+  ADMIN
+  EDITOR
+  MEMBER
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum TeamSize {
+  SOLO
+  TWO_TO_FIVE
+  SIX_TO_TEN
+  ELEVEN_TO_FIFTY
+  FIFTY_PLUS
+}
+
+enum ContactRange {
+  LESS_THAN_1000
+  FROM_1K_TO_5K
+  FROM_5K_TO_20K
+  FROM_20K_TO_50K
+  ABOVE_50K
+}
+
+// ---------------------------------------------------------------------------
+// Organization — multi-user org model
+// ---------------------------------------------------------------------------
+
+model Organization {
+  id           String @id @default(cuid())
+
+  name         String
+
+  website      String?
+  logoUrl      String?  // Cloudinary URL for org logo
+
+  addressLine1 String
+  addressLine2 String?
+
+  city         String
+  state        String?
+  postalCode   String
+  country      String
+
+  teamSize     TeamSize
+  contactRange ContactRange
+
+  sellsOnline  Boolean
+
+  marketingOptIn Boolean @default(true)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users        User[]
+}
+
+// ---------------------------------------------------------------------------
+// User — login credentials + profile
+// ---------------------------------------------------------------------------
+
+model User {
+  id           String     @id @default(cuid())
+
+  email        String     @unique
+  passwordHash String
+
+  firstName    String
+  lastName     String
+  phoneNumber  String?
+
+  role         Role       @default(OWNER)
+  status       UserStatus @default(PENDING)
+
+  emailVerified           Boolean  @default(false)
+  isOnboardingCompleted   Boolean  @default(false)
+
+  // OTP verification (6-digit code stored here)
+  otpCode        String?
+  otpExpiresAt   DateTime?
+  otpAttempts    Int      @default(0)
+
+  // Cloudinary profile image
+  profileImageUrl String?
+
+  // Free tier tracking (100 emails/month)
+  subscriptionType     String   @default("free")
+  emailsSentThisMonth  Int      @default(0)
+  emailsMonthResetAt   DateTime?
+
+  // Dashboard navigation preference: "sidebar" | "topnav"
+  navLayout    String @default("sidebar")
+
+  lastLoginAt  DateTime?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Optional org membership
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
+  // Auth tokens (kept for resend compatibility)
+  verificationTokens EmailVerificationToken[]
+
+  // Contact lists
+  contactLists ContactList[]
+}
+
+// ---------------------------------------------------------------------------
+// Email Verification Token — kept for backward compat / resend flow
+// ---------------------------------------------------------------------------
+
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+
+  token     String   @unique
+  expiresAt DateTime
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Contact Lists — user-owned lists of contacts
+// ---------------------------------------------------------------------------
+
+model ContactList {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  contacts    Contact[]
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// Contact — individual contact in a list
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id           String   @id @default(cuid())
+
+  email        String
+  firstName    String?
+  lastName     String?
+  phone        String?
+
+  // Any extra columns from CSV stored as key-value JSON
+  customFields Json?
+
+  listId       String
+  list         ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@unique([email, listId])
+}
