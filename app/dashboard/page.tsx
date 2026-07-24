@@ -15,10 +15,16 @@ export default async function DashboardPage() {
   if (!user) redirect("/login");
   if (!user.emailVerified) redirect("/verify-otp");
 
-  // Fetch stats
-  const [contactListCount, totalContacts] = await Promise.all([
+  // Fetch stats and recent activity
+  const [contactListCount, totalContacts, recentCampaigns] = await Promise.all([
     db.contactList.count({ where: { userId: user.id } }),
     db.contact.count({ where: { list: { userId: user.id } } }),
+    db.campaign.findMany({ 
+      where: { userId: user.id }, 
+      orderBy: { createdAt: "desc" }, 
+      take: 3,
+      include: { template: { select: { name: true } } }
+    }),
   ]);
 
   const used = user.emailsSentThisMonth;
@@ -231,22 +237,57 @@ export default async function DashboardPage() {
             View all →
           </Link>
         </div>
-        {/* Empty state */}
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
-            <Mail className="w-7 h-7 text-slate-600" />
+        {recentCampaigns.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-12 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center mb-4">
+              <Mail className="w-7 h-7 text-slate-600" />
+            </div>
+            <p className="text-slate-400 font-medium">No campaigns yet</p>
+            <p className="text-sm text-slate-600 mt-1 max-w-xs">
+              Import your contacts and pick a template to send your first campaign.
+            </p>
+            <Link
+              href="/dashboard/templates"
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition"
+            >
+              <PlusCircle className="w-4 h-4" /> Start a Campaign
+            </Link>
           </div>
-          <p className="text-slate-400 font-medium">No campaigns yet</p>
-          <p className="text-sm text-slate-600 mt-1 max-w-xs">
-            Import your contacts and pick a template to send your first campaign.
-          </p>
-          <Link
-            href="/dashboard/templates"
-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition"
-          >
-            <PlusCircle className="w-4 h-4" /> Start a Campaign
-          </Link>
-        </div>
+        ) : (
+          <div className="divide-y divide-slate-800/60">
+            {recentCampaigns.map((camp) => (
+              <div key={camp.id} className="py-4 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    camp.status === 'SENT' ? 'bg-emerald-500/10 text-emerald-400' :
+                    camp.status === 'DRAFT' ? 'bg-slate-800 text-slate-400' :
+                    'bg-indigo-500/10 text-indigo-400'
+                  }`}>
+                    <Mail className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-white">{camp.subject || 'Untitled Campaign'}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {camp.template?.name || 'No template'} · {new Date(camp.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={`inline-flex px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    camp.status === 'SENT' ? 'bg-emerald-500/10 text-emerald-400' :
+                    camp.status === 'DRAFT' ? 'bg-slate-800 text-slate-400' :
+                    'bg-indigo-500/10 text-indigo-400'
+                  }`}>
+                    {camp.status}
+                  </span>
+                  {camp.status === 'SENT' && (
+                    <p className="text-xs text-slate-500 mt-1">{camp.successfulRecipients} sent</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* ── Plan Info Bar ── */}
