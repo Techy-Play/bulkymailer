@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
     // Constant-time-safe: always compare even if user not found
     const dummyHash =
-      "$2b$12$invalidhashpaddingtomatchrounds...............................";
+      "$2b$12$000000000000000000000uGBYjszJBIUepBOsHmXpGEwJCMdnXJm";
     const passwordValid = await verifyPassword(
       password,
       user?.passwordHash ?? dummyHash
