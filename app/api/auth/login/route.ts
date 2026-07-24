@@ -22,17 +22,20 @@ export async function POST(req: NextRequest) {
 
     const { email, password } = parsed.data;
 
+    // Find the user by email
     const user = await db.user.findUnique({ where: { email } });
 
-    // Constant-time-safe: always compare even if user not found
-    const dummyHash =
-      "$2b$12$000000000000000000000uGBYjszJBIUepBOsHmXpGEwJCMdnXJm";
-    const passwordValid = await verifyPassword(
-      password,
-      user?.passwordHash ?? dummyHash
-    );
+    if (!user) {
+      return NextResponse.json(
+        { error: "Invalid email or password" },
+        { status: 401 }
+      );
+    }
 
-    if (!user || !passwordValid) {
+    // Verify password against the stored hash
+    const passwordValid = await verifyPassword(password, user.passwordHash);
+
+    if (!passwordValid) {
       return NextResponse.json(
         { error: "Invalid email or password" },
         { status: 401 }
@@ -80,3 +83,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
