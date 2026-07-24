@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import bcrypt from "bcrypt";
+import { hashPassword } from "@/lib/auth";
 import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
@@ -40,9 +40,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Hash the new password
-    const saltRounds = 10;
-    const passwordHash = await bcrypt.hash(newPassword, saltRounds);
+    // Hash the new password using consistent auth helper
+    const passwordHash = await hashPassword(newPassword);
 
     // Update the user's password and clear the reset token
     await db.user.update({

@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
     });
 
     if (!user) {
-      // Return 200 even if user is not found to prevent email enumeration
-      return NextResponse.json({ message: "If an account exists, a reset link has been sent." }, { status: 200 });
+      return NextResponse.json(
+        { error: "No account found with that email address" }, 
+        { status: 404 }
+      );
     }
 
     // Generate a secure, 64-character random hex token
@@ -40,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Send the raw, unhashed token in the email
     await sendPasswordResetEmail(user.email, unhashedToken);
 
-    return NextResponse.json({ message: "If an account exists, a reset link has been sent." }, { status: 200 });
+    return NextResponse.json({ message: "Reset link sent successfully!" }, { status: 200 });
   } catch (error) {
     console.error("[FORGOT_PASSWORD_ERROR]", error);
     return NextResponse.json(
