@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     if (!user) {
       return NextResponse.json(
-        { error: "No account found with that email address" }, 
+        { error: "No account exists with this email address." },
         { status: 404 }
       );
     }
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     // Send the raw, unhashed token in the email
     await sendPasswordResetEmail(user.email, unhashedToken);
 
-    return NextResponse.json({ message: "Reset link sent successfully!" }, { status: 200 });
+    return NextResponse.json({ message: "Password reset link sent to your email." }, { status: 200 });
   } catch (error) {
     console.error("[FORGOT_PASSWORD_ERROR]", error);
     return NextResponse.json(

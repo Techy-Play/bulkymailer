@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, Send } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
@@ -10,10 +11,13 @@ export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState("");
+  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setError("");
     
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -25,8 +29,10 @@ export default function ForgotPasswordPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        toast.error(data.error || "Failed to send reset link");
         setLoading(false);
+        const errorMsg = data.error || "No account exists with this email address.";
+        toast.error(errorMsg);
+        router.push("/login");
         return;
       }
 
@@ -35,6 +41,7 @@ export default function ForgotPasswordPage() {
       toast.success(data.message || "Reset link sent!");
     } catch (err) {
       setLoading(false);
+      setError("An unexpected error occurred");
       toast.error("An unexpected error occurred");
     }
   }
@@ -89,10 +96,13 @@ export default function ForgotPasswordPage() {
                       placeholder="you@company.com"
                       required
                       autoFocus
-                      className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:outline-none transition"
+                      className={`w-full pl-9 pr-3 py-3 bg-gray-50 border ${error ? 'border-red-300 focus:border-red-400 focus:ring-red-500/40' : 'border-gray-200 focus:border-indigo-400 focus:ring-indigo-500/40'} rounded-xl text-[#111827] text-sm focus:ring-2 focus:outline-none transition`}
                     />
                     <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
                   </div>
+                  {error && (
+                    <p className="mt-2 text-xs text-red-500 font-medium">{error}</p>
+                  )}
                 </div>
 
                 <button
