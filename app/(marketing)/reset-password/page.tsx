@@ -52,7 +52,9 @@ function ResetPasswordForm() {
       }
 
       toast.success(data.message || "Password successfully reset");
-      router.push("/login");
+      setTimeout(() => {
+        router.push("/login");
+      }, 1500);
     } catch (err) {
       setLoading(false);
       toast.error("An unexpected error occurred");
