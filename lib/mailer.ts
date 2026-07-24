@@ -23,7 +23,7 @@ export async function sendOtpEmail(
   firstName: string
 ): Promise<void> {
   const textContent = `Hey ${firstName},\n\nYour BulkyMailer verification code is: ${otp}\n\nThis code expires in 10 minutes. Never share it with anyone.\n\n— BulkyMailer`;
-  
+
   await transporter.sendMail({
     from: FROM,
     to,
@@ -130,7 +130,7 @@ export async function sendPasswordResetEmail(
     <p style="font-size:16px;line-height:1.5;margin-bottom:30px;color:#374151;">
       We received a request to reset the password for your BulkyMailer account. Click the button below to set a new password. This link expires in 1 hour.
     </p>
-    <a href="\${resetLink}" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
+    <a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
       Reset Password
     </a>
     <p style="font-size:14px;color:#6b7280;line-height:1.5;margin-top:30px;">
