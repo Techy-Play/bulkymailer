@@ -100,6 +100,10 @@ model User {
   otpCode        String?
   otpExpiresAt   DateTime?
   otpAttempts    Int      @default(0)
+  
+  // Password Reset
+  resetToken       String?
+  resetTokenExpiry DateTime?
 
   // Cloudinary profile image
   profileImageUrl String?

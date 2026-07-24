@@ -15,12 +15,28 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Failed to send reset link");
+        setLoading(false);
+        return;
+      }
+
       setLoading(false);
       setSubmitted(true);
-      toast.success("If an account exists, a reset link has been sent.");
-    }, 1500);
+      toast.success(data.message || "Reset link sent!");
+    } catch (err) {
+      setLoading(false);
+      toast.error("An unexpected error occurred");
+    }
   }
 
   return (

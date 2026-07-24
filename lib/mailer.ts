@@ -22,6 +22,8 @@ export async function sendOtpEmail(
   otp: string,
   firstName: string
 ): Promise<void> {
+  const textContent = `Hey ${firstName},\n\nYour BulkyMailer verification code is: ${otp}\n\nThis code expires in 10 minutes. Never share it with anyone.\n\n— BulkyMailer`;
+  
   await transporter.sendMail({
     from: FROM,
     to,
@@ -34,56 +36,27 @@ export async function sendOtpEmail(
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Verify your email</title>
 </head>
-<body style="margin:0;padding:0;background:#0f0f14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f14;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:16px;overflow:hidden;">
-          <!-- Header -->
-          <tr>
-            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px;text-align:center;">
-              <p style="margin:0;color:#FFFFFF;font-size:22px;font-weight:800;letter-spacing:-0.5px;">
-                ✉️ BulkyMailer
-              </p>
-              <p style="margin:8px 0 0;color:rgba(255,255,255,0.75);font-size:13px;">Email Marketing Platform</p>
-            </td>
-          </tr>
-          <!-- Body -->
-          <tr>
-            <td style="padding:40px 40px 32px;">
-              <h1 style="margin:0 0 8px;font-size:22px;font-weight:700;color:#f1f5f9;">
-                Hey ${firstName}, verify your email
-              </h1>
-              <p style="margin:0 0 32px;font-size:15px;color:#94a3b8;line-height:1.6;">
-                Use the code below to verify your BulkyMailer account. It expires in <strong style="color:#e2e8f0;">10 minutes</strong>.
-              </p>
-              <!-- OTP Box -->
-              <div style="background:#0f0f14;border:2px solid #6366f1;border-radius:12px;padding:24px;text-align:center;margin-bottom:32px;">
-                <p style="margin:0 0 6px;font-size:12px;font-weight:600;color:#6366f1;text-transform:uppercase;letter-spacing:2px;">Your verification code</p>
-                <p style="margin:0;font-size:42px;font-weight:800;color:#ffffff;letter-spacing:10px;font-variant-numeric:tabular-nums;">${otp}</p>
-              </div>
-              <p style="margin:0;font-size:13px;color:#64748b;line-height:1.6;">
-                Never share this code with anyone. BulkyMailer will never ask for your code.<br/>
-                If you didn't create an account, you can safely ignore this email.
-              </p>
-            </td>
-          </tr>
-          <!-- Footer -->
-          <tr>
-            <td style="padding:20px 40px;border-top:1px solid #2d2d4a;">
-              <p style="margin:0;font-size:11px;color:#475569;">
-                BulkyMailer by BUIMB Research · Developed by Lokesh Paneru<br/>
-                This is a transactional email — no unsubscribe needed.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
+  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
+    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">Verify your email</h1>
+    <p style="font-size:16px;line-height:1.5;margin-bottom:20px;color:#374151;">
+      Hey ${firstName},<br><br>
+      Use the code below to verify your BulkyMailer account. It expires in 10 minutes.
+    </p>
+    <div style="background:#f3f4f6;padding:20px;border-radius:8px;text-align:center;margin-bottom:20px;">
+      <span style="font-size:32px;font-weight:bold;letter-spacing:4px;color:#111827;">${otp}</span>
+    </div>
+    <p style="font-size:14px;color:#6b7280;line-height:1.5;">
+      Never share this code with anyone.<br>
+      If you didn't create an account, you can safely ignore this email.
+    </p>
+    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
+      — BulkyMailer Team
+    </p>
+  </div>
 </body>
 </html>`,
-    text: `Hey ${firstName},\n\nYour BulkyMailer verification code is: ${otp}\n\nThis code expires in 10 minutes. Never share it with anyone.\n\n— BulkyMailer by BUIMB Research`,
+    text: textContent,
   });
 }
 
@@ -95,51 +68,81 @@ export async function sendWelcomeEmail(
   to: string,
   firstName: string
 ): Promise<void> {
+  const textContent = `Hey ${firstName},\n\nYour email is verified! Your account is now active.\nGo to your dashboard: ${APP_URL}/dashboard\n\n— BulkyMailer`;
+
   await transporter.sendMail({
     from: FROM,
     to,
-    subject: `Welcome to BulkyMailer, ${firstName}! 🎉`,
+    subject: `Welcome to BulkyMailer, ${firstName}!`,
     html: `
 <!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:0;background:#0f0f14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f14;padding:40px 0;">
-    <tr>
-      <td align="center">
-        <table width="560" cellpadding="0" cellspacing="0" style="background:#1a1a2e;border:1px solid #2d2d4a;border-radius:16px;overflow:hidden;">
-          <tr>
-            <td style="background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 100%);padding:32px;text-align:center;">
-              <p style="margin:0;color:#FFFFFF;font-size:22px;font-weight:800;">✉️ BulkyMailer</p>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:40px;">
-              <h1 style="margin:0 0 12px;font-size:24px;font-weight:800;color:#f1f5f9;">
-                🎉 You're in, ${firstName}!
-              </h1>
-              <p style="margin:0 0 20px;font-size:15px;color:#94a3b8;line-height:1.6;">
-                Your email is verified and your BulkyMailer account is active.<br/>
-                Your <strong style="color:#e2e8f0;">Free Plan</strong> gives you <strong style="color:#6366f1;">100 emails/month</strong> to get started.
-              </p>
-              <a href="${APP_URL}/dashboard"
-                 style="display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#FFFFFF;font-size:14px;font-weight:700;border-radius:10px;text-decoration:none;">
-                Go to Dashboard →
-              </a>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:20px 40px;border-top:1px solid #2d2d4a;">
-              <p style="margin:0;font-size:11px;color:#475569;">BulkyMailer by BUIMB Research · Developed by Lokesh Paneru</p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to BulkyMailer</title>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
+  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
+    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">You're in, ${firstName}!</h1>
+    <p style="font-size:16px;line-height:1.5;margin-bottom:30px;color:#374151;">
+      Your email is verified and your BulkyMailer account is active. You can now start creating and sending campaigns.
+    </p>
+    <a href="${APP_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
+      Go to Dashboard
+    </a>
+    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
+      — BulkyMailer Team
+    </p>
+  </div>
 </body>
 </html>`,
-    text: `Hey ${firstName},\n\nYour email is verified! Your Free Plan gives you 100 emails/month.\nGo to your dashboard: ${APP_URL}/dashboard\n\n— BulkyMailer`,
+    text: textContent,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Password Reset Email
+// ---------------------------------------------------------------------------
+
+export async function sendPasswordResetEmail(
+  to: string,
+  token: string
+): Promise<void> {
+  const resetLink = \`\${APP_URL}/reset-password?token=\${token}\`;
+  const textContent = \`Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n\${resetLink}\n\nIf you did not request this, please ignore this email.\n\n— BulkyMailer\`;
+
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject: "Reset your BulkyMailer password",
+    html: \`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your password</title>
+</head>
+<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
+  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
+    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">Reset your password</h1>
+    <p style="font-size:16px;line-height:1.5;margin-bottom:30px;color:#374151;">
+      We received a request to reset the password for your BulkyMailer account. Click the button below to set a new password. This link expires in 1 hour.
+    </p>
+    <a href="\${resetLink}" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
+      Reset Password
+    </a>
+    <p style="font-size:14px;color:#6b7280;line-height:1.5;margin-top:30px;">
+      If you did not request a password reset, you can safely ignore this email.
+    </p>
+    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
+      — BulkyMailer Team
+    </p>
+  </div>
+</body>
+</html>\`,
+    text: textContent,
   });
 }
 
@@ -159,4 +162,3 @@ export async function sendEmail(
     html,
   });
 }
-
