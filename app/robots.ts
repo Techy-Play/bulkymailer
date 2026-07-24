@@ -7,6 +7,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/api/", "/dashboard/"],
     },
-    sitemap: "https://bulkymailer.com/sitemap.xml",
+    sitemap: "https://bulkymailer.vercel.app/sitemap.xml",
   };
 }

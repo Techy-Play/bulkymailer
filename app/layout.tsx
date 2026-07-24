@@ -48,10 +48,10 @@ export const metadata: Metadata = {
     "Developer Email API",
     "Campaign Analytics",
   ],
-  authors: [{ name: "Lokesh Paneru", url: "https://bulkymailer.com" }],
+  authors: [{ name: "Lokesh Paneru", url: "https://bulkymailer.vercel.app/" }],
   creator: "Lokesh Paneru",
   publisher: "BUIMB Research",
-  metadataBase: new URL("https://bulkymailer.com"),
+  metadataBase: new URL("https://bulkymailer.vercel.app/"),
   alternates: {
     canonical: "/",
   },
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     title: "BulkyMailer — Email Marketing That Gets Delivered",
     description:
       "Create campaigns, manage subscribers, and track analytics with 99.99% inbox deliverability.",
-    url: "https://bulkymailer.com",
+    url: "https://bulkymailer.vercel.app/",
     siteName: "BulkyMailer",
     locale: "en_US",
     type: "website",
