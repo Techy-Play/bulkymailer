@@ -109,14 +109,14 @@ export async function sendPasswordResetEmail(
   to: string,
   token: string
 ): Promise<void> {
-  const resetLink = \`\${APP_URL}/reset-password?token=\${token}\`;
-  const textContent = \`Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n\${resetLink}\n\nIf you did not request this, please ignore this email.\n\n— BulkyMailer\`;
+  const resetLink = `${APP_URL}/reset-password?token=${token}`;
+  const textContent = `Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\n— BulkyMailer`;
 
   await transporter.sendMail({
     from: FROM,
     to,
     subject: "Reset your BulkyMailer password",
-    html: \`
+    html: `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -141,7 +141,7 @@ export async function sendPasswordResetEmail(
     </p>
   </div>
 </body>
-</html>\`,
+</html>`,
     text: textContent,
   });
 }
