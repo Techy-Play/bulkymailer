@@ -33,7 +33,7 @@ export function CTASection() {
 
           <div className="mt-6 flex flex-wrap justify-center items-center gap-6 text-xs text-gray-500">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Free 10,000 monthly emails
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Free 100 monthly emails
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-600" /> No credit card required

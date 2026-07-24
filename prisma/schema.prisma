@@ -102,7 +102,7 @@ model User {
   otpAttempts    Int      @default(0)
   
   // Password Reset
-  resetToken       String?
+  resetToken       String?   @unique
   resetTokenExpiry DateTime?
 
   // Cloudinary profile image

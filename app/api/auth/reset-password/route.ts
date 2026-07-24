@@ -24,16 +24,13 @@ export async function POST(req: NextRequest) {
     // Hash the provided token to compare with the one in DB
     const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
-    const user = await db.user.findFirst({
+    const user = await db.user.findUnique({
       where: {
         resetToken: hashedToken,
-        resetTokenExpiry: {
-          gt: new Date(), // Check if expiry is in the future
-        },
       },
     });
 
-    if (!user) {
+    if (!user || !user.resetTokenExpiry || user.resetTokenExpiry < new Date()) {
       return NextResponse.json(
         { error: "Invalid or expired reset token" },
         { status: 400 }
