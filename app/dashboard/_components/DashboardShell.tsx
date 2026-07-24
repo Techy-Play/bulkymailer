@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, FileText, BarChart3, Settings, User,
-  LogOut, Mail, Menu, X, ChevronDown, Bell, Zap, PanelLeft, ChevronRight,
+  LogOut, Mail, Menu, X, ChevronDown, Bell, Zap, PanelLeft, ChevronRight, Send,
 } from "lucide-react";
 
 const FREE_TIER_LIMIT = 100;
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
+  { label: "Campaigns", href: "/dashboard/campaigns", icon: Send },
   { label: "Contacts", href: "/dashboard/contacts", icon: Users },
   { label: "Templates", href: "/dashboard/templates", icon: FileText },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
@@ -67,9 +68,9 @@ function UsageMeter({ used, limit }: { used: number; limit: number }) {
   return (
     <div>
       <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-slate-400">Emails this month</span>
+        <span className="text-xs text-slate-400">Emails Sent</span>
         <span className="text-xs font-semibold text-slate-300">
-          {used}/{limit}
+          {used} / {limit}
         </span>
       </div>
       <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">

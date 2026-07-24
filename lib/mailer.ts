@@ -142,3 +142,21 @@ export async function sendWelcomeEmail(
     text: `Hey ${firstName},\n\nYour email is verified! Your Free Plan gives you 100 emails/month.\nGo to your dashboard: ${APP_URL}/dashboard\n\n— BulkyMailer`,
   });
 }
+
+// ---------------------------------------------------------------------------
+// Generic Campaign Email
+// ---------------------------------------------------------------------------
+
+export async function sendEmail(
+  to: string,
+  subject: string,
+  html: string
+): Promise<void> {
+  await transporter.sendMail({
+    from: FROM,
+    to,
+    subject,
+    html,
+  });
+}
+

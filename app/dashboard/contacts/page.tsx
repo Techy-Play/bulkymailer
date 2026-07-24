@@ -258,7 +258,7 @@ function EditableCell({ value, onSave, placeholder = "—" }: {
         onChange={(e) => setDraft(e.target.value)}
         onBlur={commit}
         onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") { setDraft(value); setEditing(false); } }}
-        className="w-full bg-indigo-950 border border-indigo-500 text-white text-xs px-2 py-1 rounded-lg outline-none"
+        className="w-full bg-slate-700 border border-indigo-500 text-white text-xs px-2 py-1 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
       />
     );
   }
@@ -379,14 +379,14 @@ function ContactTable({ listId, listName }: { listId: string; listName: string }
                 <td className="px-4 py-2">
                   <input type="email" placeholder="email@example.com" value={newContact.email}
                     onChange={(e) => setNewContact((p) => ({ ...p, email: e.target.value }))}
-                    className="w-full bg-slate-800 border border-indigo-500 text-white text-xs px-2 py-1.5 rounded-lg outline-none" />
+                    className="w-full bg-slate-700 border border-indigo-500 text-white text-xs px-2 py-1.5 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" />
                   {addError && <p className="text-[10px] text-red-400 mt-0.5">{addError}</p>}
                 </td>
                 {(["firstName", "lastName", "phone"] as const).map((f) => (
                   <td key={f} className="px-4 py-2">
                     <input type="text" placeholder="—" value={newContact[f]}
                       onChange={(e) => setNewContact((p) => ({ ...p, [f]: e.target.value }))}
-                      className="w-full bg-slate-800 border border-slate-600 text-white text-xs px-2 py-1.5 rounded-lg outline-none" />
+                      className="w-full bg-slate-700 border border-slate-500 text-white text-xs px-2 py-1.5 rounded-lg outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
                   </td>
                 ))}
                 <td className="px-4 py-2">

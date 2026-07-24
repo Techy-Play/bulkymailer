@@ -20,7 +20,7 @@ export function CTASection() {
               href="/register"
               className="w-full sm:w-auto inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[#111827] hover:bg-black rounded-lg shadow-sm transition-all"
             >
-              Start Free (10k Emails Included)
+              Start Free (100 Emails Included)
               <ArrowRight className="w-4 h-4 ml-2" />
             </Link>
             <Link

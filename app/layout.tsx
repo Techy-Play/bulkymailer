@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
 
 const polarSans = localFont({
   src: "../public/fonts/FTPolar_Regular-s.p.61d92bfa.woff2",
@@ -119,9 +117,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-indigo-500 selection:text-white font-sans">
-        <Navbar />
-        <main className="flex-1 pt-16">{children}</main>
-        <Footer />
+        {children}
       </body>
     </html>
   );

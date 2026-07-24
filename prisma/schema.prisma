@@ -126,6 +126,10 @@ model User {
 
   // Contact lists
   contactLists ContactList[]
+  
+  senderProfiles SenderProfile[]
+  templates      Template[]
+  campaigns      Campaign[]
 }
 
 // ---------------------------------------------------------------------------
@@ -160,6 +164,8 @@ model ContactList {
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  
+  campaigns   Campaign[]
 }
 
 // ---------------------------------------------------------------------------
@@ -184,4 +190,108 @@ model Contact {
   updatedAt    DateTime @updatedAt
 
   @@unique([email, listId])
+}
+
+// ---------------------------------------------------------------------------
+// Template Categories
+// ---------------------------------------------------------------------------
+
+enum TemplateCategory {
+  NEWSLETTER
+  PROMOTIONAL
+  PERSONALIZED
+  GENERAL
+  TRANSACTIONAL
+}
+
+// ---------------------------------------------------------------------------
+// Campaign Status
+// ---------------------------------------------------------------------------
+
+enum CampaignStatus {
+  DRAFT
+  QUEUED
+  SENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+// ---------------------------------------------------------------------------
+// Sender Profile
+// ---------------------------------------------------------------------------
+
+model SenderProfile {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromName  String
+  fromEmail String
+  replyTo   String?
+  isDefault Boolean  @default(false)
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  campaigns Campaign[]
+}
+
+// ---------------------------------------------------------------------------
+// Template
+// ---------------------------------------------------------------------------
+
+model Template {
+  id          String           @id @default(cuid())
+  userId      String?          // null = system global
+  user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  name        String
+  category    TemplateCategory @default(GENERAL)
+  htmlContent String           @db.Text
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  
+  campaigns   Campaign[]
+}
+
+// ---------------------------------------------------------------------------
+// Campaign
+// ---------------------------------------------------------------------------
+
+model Campaign {
+  id                   String         @id @default(cuid())
+  userId               String
+  user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  templateId           String?
+  template             Template?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  
+  contactListId        String
+  contactList          ContactList    @relation(fields: [contactListId], references: [id], onDelete: Restrict)
+  
+  senderProfileId      String?
+  senderProfile        SenderProfile? @relation(fields: [senderProfileId], references: [id], onDelete: SetNull)
+  
+  subject              String
+  
+  // Snapshots for immutability
+  renderedHtml         String?        @db.Text
+  subjectSnapshot      String?
+  fromNameSnapshot     String?
+  fromEmailSnapshot    String?
+  
+  // Analytics / Tracking
+  totalRecipients      Int            @default(0)
+  successfulRecipients Int            @default(0)
+  failedRecipients     Int            @default(0)
+  openedCount          Int            @default(0)
+  clickedCount         Int            @default(0)
+  
+  status               CampaignStatus @default(DRAFT)
+  
+  startedAt            DateTime?
+  completedAt          DateTime?
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 }
