@@ -2,17 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { Mail, ArrowLeft, Send } from "lucide-react";
+import { Mail, ArrowLeft, Send, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 
+type Status = "idle" | "submitted" | "not_found";
+
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
+  const [notFoundEmail, setNotFoundEmail] = useState("");
   const [loading, setLoading] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
+  const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState("");
-  const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,20 +31,31 @@ export default function ForgotPasswordPage() {
 
       if (!res.ok) {
         setLoading(false);
-        const errorMsg = data.error || "No account exists with this email address.";
-        toast.error(errorMsg);
-        router.push("/login");
+        if (res.status === 404) {
+          setNotFoundEmail(email);
+          setStatus("not_found");
+        } else {
+          setError(data.error || "An unexpected error occurred");
+          toast.error(data.error || "An unexpected error occurred");
+        }
         return;
       }
 
       setLoading(false);
-      setSubmitted(true);
+      setStatus("submitted");
       toast.success(data.message || "Reset link sent!");
     } catch (err) {
       setLoading(false);
       setError("An unexpected error occurred");
       toast.error("An unexpected error occurred");
     }
+  }
+
+  function handleTryAgain() {
+    setStatus("idle");
+    setNotFoundEmail("");
+    setEmail("");
+    setError("");
   }
 
   return (
@@ -54,7 +66,7 @@ export default function ForgotPasswordPage() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-8 sm:p-10"
         >
-          {submitted ? (
+          {status === "submitted" && (
             <div className="text-center">
               <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Send className="w-8 h-8 text-emerald-500" />
@@ -72,7 +84,47 @@ export default function ForgotPasswordPage() {
                 <ArrowLeft className="w-4 h-4" /> Back to Login
               </Link>
             </div>
-          ) : (
+          )}
+
+          {status === "not_found" && (
+            <div className="text-center">
+              <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                <AlertCircle className="w-8 h-8 text-rose-500" />
+              </div>
+              <h1 className="text-2xl font-extrabold text-[#111827] tracking-tight mb-3">
+                No Account Found
+              </h1>
+              <p className="text-[#4B5563] text-sm leading-relaxed mb-8">
+                We couldn't find an account registered under <span className="font-semibold text-[#111827]">{notFoundEmail}</span>. 
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={handleTryAgain}
+                  className="w-full py-3 bg-[#111827] hover:bg-[#1f2937] text-white font-bold rounded-xl transition shadow-lg shadow-gray-900/10 flex items-center justify-center gap-2"
+                >
+                  Try Again
+                </button>
+                
+                <div className="flex items-center gap-3 pt-2">
+                  <Link
+                    href="/login"
+                    className="flex-1 py-2.5 bg-white border border-gray-200 text-[#374151] font-bold rounded-xl hover:bg-gray-50 transition shadow-sm text-sm"
+                  >
+                    Log In
+                  </Link>
+                  <Link
+                    href="/register"
+                    className="flex-1 py-2.5 bg-indigo-50 border border-indigo-100 text-indigo-700 font-bold rounded-xl hover:bg-indigo-100 transition shadow-sm text-sm"
+                  >
+                    Get Started
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {status === "idle" && (
             <>
               <div className="mb-8 text-center">
                 <h1 className="text-2xl font-extrabold text-[#111827] tracking-tight mb-2">
