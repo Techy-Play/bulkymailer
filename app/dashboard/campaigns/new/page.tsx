@@ -1,225 +1,439 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ChevronRight, CheckCircle2, PlayCircle, Send, RefreshCw, Mail } from "lucide-react";
+import { ArrowLeft, Check, X, Search, FileText } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
-interface OptionItem { id: string; name: string; count?: number; category?: string; }
+interface OptionItem { id: string; name: string; count?: number; category?: string; htmlContent?: string; }
 
-export default function NewCampaignWizard() {
+const CATEGORY_ORDER = ["NEWSLETTER", "PROMOTIONAL", "PERSONALIZED", "GENERAL", "TRANSACTIONAL"];
+
+export default function NewCampaignPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(true);
   
+  // State
   const [subject, setSubject] = useState("");
-  const [templates, setTemplates] = useState<OptionItem[]>([]);
-  const [templateId, setTemplateId] = useState("");
-  const [lists, setLists] = useState<OptionItem[]>([]);
-  const [listId, setListId] = useState("");
+  const [campaignName, setCampaignName] = useState("Untitled Campaign");
+  const [isEditingName, setIsEditingName] = useState(false);
   
-  const [sending, setSending] = useState(false);
-  const [error, setError] = useState("");
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  
+  const [templates, setTemplates] = useState<OptionItem[]>([]);
+  const [selectedTemplate, setSelectedTemplate] = useState<OptionItem | null>(null);
+  
+  const [lists, setLists] = useState<OptionItem[]>([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  
+  const [senders, setSenders] = useState<any[]>([]);
+  const [selectedSenderId, setSelectedSenderId] = useState("");
+  
+  // Modals
+  const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false);
+  const [previewTemplate, setPreviewTemplate] = useState<OptionItem | null>(null);
+  const [templateSearch, setTemplateSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("ALL");
+  const [previewTab, setPreviewTab] = useState<"desktop"|"mobile">("desktop");
 
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [sending, setSending] = useState(false);
+  
   useEffect(() => {
     Promise.all([
       fetch("/api/templates").then(r => r.json()),
-      fetch("/api/contacts/lists").then(r => r.json())
-    ]).then(([tData, lData]) => {
+      fetch("/api/contacts/lists").then(r => r.json()),
+      fetch("/api/sender-profiles").then(r => r.json())
+    ]).then(([tData, lData, sData]) => {
       if (tData.templates) setTemplates(tData.templates);
       if (lData.lists) setLists(lData.lists);
-      setLoading(false);
+      if (sData.senderProfiles) {
+        setSenders(sData.senderProfiles);
+        if (sData.senderProfiles.length > 0) {
+          setSelectedSenderId(sData.senderProfiles[0].id);
+          setSenderName(sData.senderProfiles[0].fromName);
+          setSenderEmail(sData.senderProfiles[0].fromEmail);
+        }
+      }
     });
   }, []);
 
-  async function createAndSend() {
-    if (!subject || !templateId || !listId) {
-      setError("Please fill out all required fields.");
+  const selectTemplate = (t: OptionItem) => {
+    setSelectedTemplate(t);
+    setIsTemplateModalOpen(false);
+    setPreviewTemplate(null);
+  };
+
+  const handleSaveDraft = async () => {
+    setSavingDraft(true);
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          subject, 
+          campaignName,
+          templateId: selectedTemplate?.id, 
+          contactListId: selectedListId || undefined 
+        })
+      });
+      if (res.ok) {
+        // Optional: show a success toast here
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const handleSend = async () => {
+    if (!subject || !selectedTemplate || !selectedListId) {
+      alert("Please fill in subject, template, and audience.");
       return;
     }
     setSending(true);
-    setError("");
-    
     try {
-      // 1. Create Draft
       const resCreate = await fetch("/api/campaigns", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, templateId, contactListId: listId })
+        body: JSON.stringify({ 
+          subject, 
+          campaignName,
+          templateId: selectedTemplate.id, 
+          contactListId: selectedListId 
+        })
       });
       const dataCreate = await resCreate.json();
       if (!resCreate.ok) throw new Error(dataCreate.error || "Failed to create campaign");
       
-      const campaignId = dataCreate.campaign.id;
-      
-      // 2. Trigger Send
-      const resSend = await fetch(`/api/campaigns/${campaignId}/send`, { method: "POST" });
-      const dataSend = await resSend.json();
-      if (!resSend.ok) throw new Error(dataSend.error || "Failed to send campaign");
+      const resSend = await fetch(`/api/campaigns/${dataCreate.campaign.id}/send`, { method: "POST" });
+      if (!resSend.ok) throw new Error("Failed to send campaign");
       
       router.push("/dashboard/campaigns");
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      console.error(err);
+    } finally {
       setSending(false);
     }
-  }
+  };
 
-  if (loading) return <div className="p-12 text-center text-slate-500">Loading Wizard...</div>;
+  const filteredTemplates = templates.filter(t => 
+    t.name.toLowerCase().includes(templateSearch.toLowerCase())
+  );
+  
+  const groupedTemplates = CATEGORY_ORDER.reduce((acc, cat) => {
+    const items = filteredTemplates.filter(t => activeCategory === 'ALL' ? (t.category || 'GENERAL').toUpperCase() === cat : activeCategory === cat && (t.category || 'GENERAL').toUpperCase() === cat);
+    if (items.length > 0) acc[cat] = items;
+    return acc;
+  }, {} as Record<string, OptionItem[]>);
+
+  const activeMainTab = "desktop"; // Right panel tabs
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/campaigns" className="p-2 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-white transition">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">New Campaign</h1>
-          <p className="text-sm text-slate-400 mt-1">Create and send a new email broadcast</p>
-        </div>
-      </div>
-      
-      {/* Stepper Progress */}
-      <div className="flex items-center justify-between mb-8 text-xs font-semibold">
-        {[
-          { num: 1, label: "Details" },
-          { num: 2, label: "Template" },
-          { num: 3, label: "Audience" },
-          { num: 4, label: "Review" }
-        ].map((s, i) => (
-          <div key={s.num} className="flex items-center gap-2">
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all ${
-              step >= s.num ? "border-indigo-500 bg-indigo-500 text-white" : "border-slate-800 bg-slate-900 text-slate-500"
-            }`}>
-              {step > s.num ? <CheckCircle2 className="w-4 h-4" /> : s.num}
-            </div>
-            <span className={step >= s.num ? "text-slate-200" : "text-slate-500 hidden sm:inline"}>{s.label}</span>
-            {i < 3 && <div className={`w-8 sm:w-16 h-px mx-2 ${step > s.num ? "bg-indigo-500" : "bg-slate-800"}`} />}
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <div className="max-w-[1400px] mx-auto p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left Form */}
+        <div className="lg:col-span-7 space-y-6">
+          <div className="flex items-center gap-3">
+            <Link href="/dashboard/campaigns" className="text-[#6B7280] hover:text-[#111827] text-sm font-medium">
+              ← Campaigns
+            </Link>
           </div>
-        ))}
-      </div>
-
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
-        {step === 1 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-            <h2 className="text-lg font-bold text-white mb-4">Campaign Details</h2>
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Subject Line</label>
-              <input type="text" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="e.g. Huge Summer Sale is Here!"
-                className="w-full px-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white text-sm focus:outline-none focus:border-indigo-500 transition" />
-            </div>
-            <div className="pt-4 flex justify-end">
-              <button onClick={() => setStep(2)} disabled={!subject}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
-                Next <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 2 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-            <h2 className="text-lg font-bold text-white mb-4">Select Template</h2>
-            {templates.length === 0 ? (
-              <p className="text-sm text-slate-400">No templates found. Please create one in the Templates tab first.</p>
+          
+          <div className="flex items-center gap-3">
+            {isEditingName ? (
+              <input 
+                type="text" 
+                value={campaignName} 
+                onChange={e => setCampaignName(e.target.value)} 
+                onBlur={() => setIsEditingName(false)}
+                autoFocus
+                className="text-2xl font-bold text-[#111827] bg-transparent border-b border-gray-300 focus:border-indigo-500 focus:outline-none px-1"
+              />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {templates.map(t => (
-                  <button key={t.id} onClick={() => setTemplateId(t.id)}
-                    className={`flex items-start gap-4 p-4 rounded-xl border text-left transition-all ${
-                      templateId === t.id ? "border-indigo-500 bg-indigo-500/10" : "border-slate-800 bg-slate-950 hover:border-slate-700"
-                    }`}>
-                    <div className={`p-2 rounded-lg ${templateId === t.id ? "bg-indigo-500 text-white" : "bg-slate-900 text-slate-500"}`}>
-                      <Mail className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className={`text-sm font-bold ${templateId === t.id ? "text-white" : "text-slate-300"}`}>{t.name}</p>
-                      <p className="text-xs text-slate-500 mt-1">{t.category}</p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+              <h1 
+                className="text-2xl font-bold text-[#111827] cursor-pointer hover:bg-gray-100 px-2 py-1 rounded-lg -ml-2 transition-colors"
+                onClick={() => setIsEditingName(true)}
+              >
+                {campaignName} ✎
+              </h1>
             )}
-            <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(1)} className="text-sm text-slate-400 hover:text-white font-semibold">Back</button>
-              <button onClick={() => setStep(3)} disabled={!templateId}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
-                Next <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
+            <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-bold rounded-lg uppercase">Draft</span>
           </div>
-        )}
 
-        {step === 3 && (
-          <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
-            <h2 className="text-lg font-bold text-white mb-4">Select Audience</h2>
-            {lists.length === 0 ? (
-              <p className="text-sm text-slate-400">No contact lists found. Import some contacts first.</p>
-            ) : (
-              <div className="space-y-3">
-                {lists.map(l => (
-                  <button key={l.id} onClick={() => setListId(l.id)}
-                    className={`w-full flex items-center justify-between p-4 rounded-xl border text-left transition-all ${
-                      listId === l.id ? "border-indigo-500 bg-indigo-500/10" : "border-slate-800 bg-slate-950 hover:border-slate-700"
-                    }`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${
-                        listId === l.id ? "border-indigo-500 bg-indigo-500" : "border-slate-600"
-                      }`}>
-                        {listId === l.id && <div className="w-1.5 h-1.5 bg-white rounded-full" />}
-                      </div>
-                      <span className={`text-sm font-bold ${listId === l.id ? "text-white" : "text-slate-300"}`}>{l.name}</span>
-                    </div>
-                    <span className="text-xs font-semibold px-2 py-1 bg-slate-900 rounded text-slate-400">{l.count || 0} contacts</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(2)} className="text-sm text-slate-400 hover:text-white font-semibold">Back</button>
-              <button onClick={() => setStep(4)} disabled={!listId}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition">
-                Review <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {step === 4 && (
-          <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-            <h2 className="text-lg font-bold text-white mb-4">Review & Send</h2>
-            {error && <div className="p-3 bg-red-900/50 border border-red-700 text-red-200 text-sm rounded-xl">{error}</div>}
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-4">
-              <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold">Subject</p>
-                <p className="text-white font-medium mt-1">{subject}</p>
+            {/* SUBJECT */}
+            <div className="p-6">
+              <label className="block text-xs uppercase text-[#6B7280] font-semibold tracking-wider mb-2">SUBJECT</label>
+              <input 
+                type="text" 
+                value={subject} 
+                onChange={e => setSubject(e.target.value)}
+                placeholder="Give a suitable subject line to your campaign."
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:outline-none transition-all"
+              />
+            </div>
+            
+            <hr className="border-gray-100" />
+            
+            {/* SENDER */}
+            <div className="p-6">
+              <label className="block text-xs uppercase text-[#6B7280] font-semibold tracking-wider mb-1">SENDER</label>
+              <p className="text-sm text-[#6B7280] mb-4">Who is sending this email campaign?</p>
+              
+              {senders.length > 0 ? (
+                <select 
+                  value={selectedSenderId} 
+                  onChange={e => {
+                    setSelectedSenderId(e.target.value);
+                    const s = senders.find(x => x.id === e.target.value);
+                    if (s) { setSenderName(s.fromName); setSenderEmail(s.fromEmail); }
+                  }}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:outline-none"
+                >
+                  {senders.map(s => <option key={s.id} value={s.id}>{s.fromName} ({s.fromEmail})</option>)}
+                </select>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <input type="text" placeholder="From Name" value={senderName} onChange={e => setSenderName(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-none" />
+                  <input type="email" placeholder="From Email" value={senderEmail} onChange={e => setSenderEmail(e.target.value)} className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-none" />
+                </div>
+              )}
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* RECIPIENT */}
+            <div className="p-6">
+              <label className="block text-xs uppercase text-[#6B7280] font-semibold tracking-wider mb-1">RECIPIENT</label>
+              <p className="text-sm text-[#6B7280] mb-4">Choose the contact lists you wish to send to.</p>
+              
+              <select 
+                value={selectedListId} 
+                onChange={e => setSelectedListId(e.target.value)}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:outline-none"
+              >
+                <option value="">Select a list...</option>
+                {lists.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+              </select>
+              {selectedListId && (
+                <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 text-green-700 rounded-lg text-sm font-medium border border-green-200">
+                  <Check className="w-4 h-4" /> 
+                  {lists.find(l => l.id === selectedListId)?.name} — {lists.find(l => l.id === selectedListId)?.count || 0} contacts
+                </div>
+              )}
+            </div>
+
+            <hr className="border-gray-100" />
+
+            {/* CONTENT */}
+            <div className="p-6">
+              <label className="block text-xs uppercase text-[#6B7280] font-semibold tracking-wider mb-1">CONTENT</label>
+              
+              {!selectedTemplate ? (
+                <div className="mt-4 border-2 border-dashed border-gray-200 rounded-2xl p-8 flex flex-col items-center justify-center text-center bg-gray-50">
+                  <div className="w-16 h-16 bg-white rounded-2xl shadow-sm border border-gray-200 flex items-center justify-center mb-4">
+                    <FileText className="w-8 h-8 text-indigo-300" />
+                  </div>
+                  <p className="text-sm text-[#111827] font-medium mb-1">Create the content of your campaign.</p>
+                  <p className="text-xs text-[#6B7280] mb-6">Choose from our pre-designed templates or build your own.</p>
+                  <button 
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="px-5 py-2.5 bg-white border border-gray-300 text-[#111827] text-sm font-semibold rounded-xl hover:bg-gray-50 shadow-sm transition-colors"
+                  >
+                    Browse Templates →
+                  </button>
+                </div>
+              ) : (
+                <div className="mt-4 border border-gray-200 rounded-2xl p-4 flex items-center gap-4 bg-gray-50">
+                  <div className="w-20 h-16 bg-white border border-gray-200 rounded-lg overflow-hidden relative">
+                    <iframe srcDoc={selectedTemplate.htmlContent} className="w-[800px] h-[800px] border-0" style={{ transform: 'scale(0.1)', transformOrigin: 'top left' }} />
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-bold text-[#111827]">{selectedTemplate.name}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">Template Selected</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsTemplateModalOpen(true)}
+                    className="px-4 py-2 text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg text-sm font-medium transition-colors"
+                  >
+                    Change Template
+                  </button>
+                </div>
+              )}
+            </div>
+            
+          </div>
+        </div>
+
+        {/* Right Preview */}
+        <div className="lg:col-span-5">
+          <div className="sticky top-20 bg-white border border-gray-200 rounded-2xl shadow-sm flex flex-col">
+            {/* Live Preview Panel */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between">
+              <h2 className="text-[#111827] font-bold">Live Preview</h2>
+            </div>
+
+            <div className="flex-1 p-4 bg-gray-50 overflow-hidden flex flex-col">
+              <p className="text-xs text-[#6B7280] uppercase font-semibold mb-3">Inbox Preview</p>
+              <div className="flex items-start gap-3 p-3 bg-white border border-gray-200 rounded-lg shadow-sm mb-4">
+                <div className="w-9 h-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm shrink-0">
+                  {senderName?.[0]?.toUpperCase() || '?'}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-sm text-[#111827]">{senderName || 'Your Name'}</span>
+                    <span className="text-xs text-[#9CA3AF]">just now</span>
+                  </div>
+                  <p className="text-sm text-[#111827] font-medium truncate">{subject || 'Your subject line'}</p>
+                  <p className="text-xs text-[#9CA3AF] truncate">Email preview text will appear here...</p>
+                </div>
               </div>
-              <div className="h-px bg-slate-800" />
-              <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold">Template</p>
-                <p className="text-white font-medium mt-1">{templates.find(t => t.id === templateId)?.name}</p>
-              </div>
-              <div className="h-px bg-slate-800" />
-              <div>
-                <p className="text-xs text-slate-500 uppercase font-semibold">Audience</p>
-                <p className="text-white font-medium mt-1">
-                  {lists.find(l => l.id === listId)?.name} 
-                  <span className="text-slate-500 text-sm ml-2">({lists.find(l => l.id === listId)?.count || 0} contacts)</span>
-                </p>
+
+              <div className="flex-1 bg-white border border-gray-200 rounded-xl overflow-hidden relative min-h-[400px]">
+                {selectedTemplate ? (
+                  <iframe srcDoc={selectedTemplate.htmlContent} className="absolute inset-0 w-full h-full border-0" />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center text-[#6B7280] text-sm">Select a template to preview</div>
+                )}
               </div>
             </div>
 
-            <div className="pt-4 flex justify-between">
-              <button onClick={() => setStep(3)} disabled={sending} className="text-sm text-slate-400 hover:text-white font-semibold">Back</button>
-              <button onClick={createAndSend} disabled={sending}
-                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-sm font-bold rounded-xl transition shadow-lg shadow-emerald-900/20">
-                {sending ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                {sending ? "Queuing..." : "Send Campaign Now"}
-              </button>
+            {/* Bottom Actions */}
+            <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl flex items-center justify-between">
+              <LoadingButton variant="secondary" onClick={handleSaveDraft} loading={savingDraft}>
+                Save Draft
+              </LoadingButton>
+              <LoadingButton variant="primary" onClick={handleSend} loading={sending}>
+                Send Campaign →
+              </LoadingButton>
             </div>
           </div>
-        )}
+        </div>
+
       </div>
+
+      {/* Template Picker Modal */}
+      {isTemplateModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-5xl w-full max-h-[90vh] flex flex-col overflow-hidden relative">
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-white z-10">
+              <h2 className="text-xl font-bold text-[#111827]">Choose a Template</h2>
+              <button onClick={() => setIsTemplateModalOpen(false)} className="p-2 hover:bg-gray-100 rounded-full text-[#6B7280]">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50 flex items-center gap-4">
+              <div className="relative flex-1 max-w-md">
+                <Search className="w-4 h-4 text-[#6B7280] absolute left-3 top-1/2 -translate-y-1/2" />
+                <input 
+                  type="text"
+                  placeholder="Search by name..."
+                  value={templateSearch}
+                  onChange={e => setTemplateSearch(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/30 outline-none"
+                />
+              </div>
+              <div className="flex items-center gap-2 overflow-x-auto">
+                {["ALL", ...CATEGORY_ORDER].map(cat => (
+                  <button 
+                    key={cat}
+                    onClick={() => setActiveCategory(cat)}
+                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg whitespace-nowrap transition-colors ${
+                      activeCategory === cat ? "bg-[#111827] text-white" : "bg-white border border-gray-200 text-[#6B7280] hover:bg-gray-50"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 bg-white space-y-8">
+              {Object.entries(groupedTemplates).map(([category, items]) => (
+                <div key={category}>
+                  <h3 className="text-xs font-bold text-[#6B7280] uppercase tracking-widest mb-4">{category}</h3>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+                    {items.map(template => (
+                      <div key={template.id} className="group border border-gray-200 rounded-xl overflow-hidden bg-white hover:border-indigo-300 transition-colors shadow-sm relative">
+                        <div className="relative bg-gray-50 border-b border-gray-100 overflow-hidden" style={{ height: 140 }}>
+                          <iframe
+                            srcDoc={template.htmlContent}
+                            title={template.name}
+                            scrolling="no"
+                            className="w-[800px] h-[800px] border-none"
+                            style={{
+                              transform: 'scale(0.225)',
+                              transformOrigin: 'top left',
+                              pointerEvents: 'none',
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                            <button onClick={() => setPreviewTemplate(template)} className="px-3 py-1.5 bg-white text-[#111827] text-xs font-semibold rounded-lg shadow-sm hover:bg-gray-50">Preview</button>
+                            <button onClick={() => selectTemplate(template)} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow-sm hover:bg-indigo-700">Use This</button>
+                          </div>
+                        </div>
+                        <div className="p-3">
+                          <p className="text-sm font-bold text-[#111827] truncate">{template.name}</p>
+                          <p className="text-[10px] text-[#6B7280] mt-0.5 truncate">{template.category || 'General'} · Updated recently</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {Object.keys(groupedTemplates).length === 0 && (
+                <div className="text-center py-12 text-[#6B7280]">No templates found matching your criteria.</div>
+              )}
+            </div>
+            
+            {/* Preview Overlay */}
+            {previewTemplate && (
+              <div className="absolute inset-0 z-60 bg-black/70 flex items-center justify-center p-8 backdrop-blur-sm animate-in fade-in">
+                <div className="bg-white rounded-2xl max-w-2xl w-full flex flex-col shadow-2xl overflow-hidden">
+                  <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-[#111827]">{previewTemplate.name}</h3>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <div className="flex bg-gray-100 p-1 rounded-lg">
+                        <button onClick={() => setPreviewTab("desktop")} className={`px-3 py-1 text-xs font-semibold rounded-md ${previewTab === 'desktop' ? 'bg-white shadow-sm text-[#111827]' : 'text-[#6B7280]'}`}>Desktop</button>
+                        <button onClick={() => setPreviewTab("mobile")} className={`px-3 py-1 text-xs font-semibold rounded-md ${previewTab === 'mobile' ? 'bg-white shadow-sm text-[#111827]' : 'text-[#6B7280]'}`}>Mobile</button>
+                      </div>
+                      <button onClick={() => setPreviewTemplate(null)} className="text-[#6B7280] hover:text-[#111827]">
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-100 p-6 flex justify-center h-[500px] overflow-hidden">
+                    {previewTab === 'desktop' ? (
+                      <div className="w-full h-full bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+                        <iframe srcDoc={previewTemplate.htmlContent} className="w-full h-full border-none" />
+                      </div>
+                    ) : (
+                      <div className="w-[375px] h-full bg-white rounded-[2.5rem] shadow-xl overflow-hidden border-[8px] border-gray-900 relative">
+                        <iframe srcDoc={previewTemplate.htmlContent} className="w-full h-full border-none" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3 bg-white">
+                    <button onClick={() => setPreviewTemplate(null)} className="px-4 py-2 text-sm font-semibold text-[#6B7280] hover:bg-gray-50 rounded-xl transition-colors">Cancel</button>
+                    <button onClick={() => selectTemplate(previewTemplate)} className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm">Use This Template</button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
     </div>
   );
 }

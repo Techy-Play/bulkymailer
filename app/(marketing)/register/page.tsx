@@ -7,6 +7,7 @@ import {
   Mail, Lock, User, ArrowRight, Eye, EyeOff, CheckCircle2,
   Building2, Globe, MapPin, Users, Phone, ChevronRight, ArrowLeft,
 } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 type Step = 0 | 1 | 2;
 
@@ -442,17 +443,10 @@ export default function RegisterPage() {
                 Continue <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
-              <button type="button" onClick={handleSubmit} disabled={loading || !canAdvance()}
+              <LoadingButton type="button" onClick={handleSubmit} loading={loading} disabled={!canAdvance()}
                 className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors">
-                {loading ? (
-                  <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                ) : (
-                  <><ArrowRight className="w-4 h-4" /> Create Account</>
-                )}
-              </button>
+                <ArrowRight className="w-4 h-4" /> Create Account
+              </LoadingButton>
             )}
           </div>
         </div>

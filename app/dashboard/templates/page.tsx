@@ -1,237 +1,295 @@
-"use client";
+'use client'
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
-import { FileText, Plus, Search, Edit, Trash, Eye, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { MoreHorizontal, Search, FileText, X } from 'lucide-react'
 
 interface Template {
-  id: string;
-  name: string;
-  category: string;
-  userId: string | null;
-  createdAt: string;
-  htmlContent: string;
+  id: string
+  name: string
+  category: string
+  htmlContent: string
+  userId: string | null
+  createdAt: string
+  updatedAt?: string
 }
 
-function PreviewModal({ template, onClose }: { template: Template; onClose: () => void }) {
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#1a1a2e] border border-slate-700 rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col h-[85vh]">
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <div>
-            <h2 className="font-bold text-white">{template.name}</h2>
-            <p className="text-xs text-slate-400">{template.category} Template</p>
-          </div>
-          <div className="flex items-center gap-3">
-            {template.userId !== null && (
-              <Link href={`/dashboard/templates/edit/${template.id}`}
-                className="flex items-center gap-2 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold rounded-lg transition">
-                <Edit className="w-3.5 h-3.5" /> Edit
-              </Link>
-            )}
-            <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-          </div>
-        </div>
-        <div className="flex-1 bg-white rounded-b-2xl overflow-hidden p-0 m-4 shadow-inner">
-          <iframe 
-            srcDoc={template.htmlContent} 
-            className="w-full h-full border-0" 
-            title="Template Preview"
-          />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CreateModal({ onClose, onSuccess }: { onClose: () => void, onSuccess: (t: Template) => void }) {
-  const [name, setName] = useState("");
-  const [category, setCategory] = useState("GENERAL");
-  const [loading, setLoading] = useState(false);
-  const router = useRouter();
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    const res = await fetch("/api/templates", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        category,
-        htmlContent: "<html>\n  <head>\n    <style>body { font-family: sans-serif; padding: 20px; }</style>\n  </head>\n  <body>\n    <h1>Hello {{firstName}}!</h1>\n    <p>Start editing your beautiful template here.</p>\n  </body>\n</html>"
-      })
-    });
-    const data = await res.json();
-    setLoading(false);
-    if (data.template) {
-      onSuccess(data.template);
-      router.push(`/dashboard/templates/edit/${data.template.id}`);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-[#1a1a2e] border border-slate-700 rounded-2xl w-full max-w-md shadow-2xl">
-        <div className="flex items-center justify-between p-5 border-b border-slate-700">
-          <h2 className="font-bold text-white">Create New Template</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-        </div>
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Template Name *</label>
-            <input type="text" value={name} onChange={(e) => setName(e.target.value)} required autoFocus
-              placeholder="e.g. Summer Promo"
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none placeholder:text-slate-500" />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1.5">Category</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)}
-              className="w-full px-3 py-2.5 bg-slate-800 border border-slate-600 rounded-xl text-white text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none">
-              <option value="GENERAL">General</option>
-              <option value="NEWSLETTER">Newsletter</option>
-              <option value="PROMOTIONAL">Promotional</option>
-              <option value="TRANSACTIONAL">Transactional</option>
-              <option value="PERSONALIZED">Personalized</option>
-            </select>
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose}
-              className="flex-1 py-2.5 border border-slate-600 text-slate-300 text-sm font-semibold rounded-xl hover:bg-slate-800 transition">
-              Cancel
-            </button>
-            <button type="submit" disabled={loading || !name.trim()}
-              className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition">
-              {loading ? "Creating..." : "Create & Edit"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+function relativeTime(dateStr: string): string {
+  const diff = Date.now() - new Date(dateStr).getTime()
+  const days = Math.floor(diff / 86400000)
+  if (days === 0) return 'Today'
+  if (days === 1) return 'Yesterday'
+  if (days < 7) return `${days}d ago`
+  if (days < 30) return `${Math.floor(days / 7)}w ago`
+  return `${Math.floor(days / 30)}mo ago`
 }
 
 export default function TemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"ALL" | "SYSTEM" | "CUSTOM">("ALL");
-  const [search, setSearch] = useState("");
-  
-  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null);
-  const [showCreate, setShowCreate] = useState(false);
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const [activeCategory, setActiveCategory] = useState<'ALL' | 'NEWSLETTER' | 'PROMOTIONAL' | 'PERSONALIZED' | 'GENERAL' | 'TRANSACTIONAL'>('ALL')
+  const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
+  const [duplicating, setDuplicating] = useState<string | null>(null)
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null)
+  const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
 
   useEffect(() => {
-    fetch("/api/templates")
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.templates) setTemplates(data.templates);
-        setLoading(false);
-      });
-  }, []);
+    fetchTemplates()
+    
+    const handleClickOutside = () => setOpenMenuId(null)
+    document.addEventListener('click', handleClickOutside)
+    return () => document.removeEventListener('click', handleClickOutside)
+  }, [])
 
-  async function deleteTemplate(id: string) {
-    if (!confirm("Are you sure you want to delete this template?")) return;
-    await fetch(`/api/templates/${id}`, { method: "DELETE" });
-    setTemplates(templates.filter(t => t.id !== id));
+  async function fetchTemplates() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/templates')
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(data.templates || [])
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  const filtered = templates.filter(t => {
-    if (activeTab === "SYSTEM" && t.userId !== null) return false;
-    if (activeTab === "CUSTOM" && t.userId === null) return false;
-    if (search && !t.name.toLowerCase().includes(search.toLowerCase())) return false;
-    return true;
-  });
+  async function handleDuplicate(id: string) {
+    setDuplicating(id)
+    try {
+      const res = await fetch(`/api/templates/${id}/duplicate`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setTemplates(prev => [data.template, ...prev])
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setDuplicating(null)
+      setOpenMenuId(null)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    try {
+      const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' })
+      if (res.ok) {
+        setTemplates(prev => prev.filter(t => t.id !== id))
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setConfirmDeleteId(null)
+    }
+  }
+
+  const filteredTemplates = templates.filter(t => {
+    const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase())
+    const matchesCategory = activeCategory === 'ALL' || t.category === activeCategory
+    return matchesSearch && matchesCategory
+  })
+
+  const categories = ['ALL', 'NEWSLETTER', 'PROMOTIONAL', 'PERSONALIZED', 'GENERAL', 'TRANSACTIONAL'] as const
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">Templates</h1>
-          <p className="text-sm text-slate-400 mt-1">Manage email designs for your campaigns</p>
-        </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center justify-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition">
-          <Plus className="w-4 h-4" /> Create Custom
-        </button>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold text-[#111827]">Templates</h1>
+        <Link href="/dashboard/templates/new" className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
+          + New Template
+        </Link>
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5">
-        <div className="flex flex-col sm:flex-row gap-4 mb-6">
-          <div className="flex bg-slate-800 p-1 rounded-lg">
-            {(["ALL", "SYSTEM", "CUSTOM"] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-md text-xs font-semibold transition ${
-                  activeTab === tab ? "bg-slate-700 text-white shadow" : "text-slate-400 hover:text-slate-200"
-                }`}>
-                {tab === "ALL" ? "All" : tab === "SYSTEM" ? "System" : "My Templates"}
-              </button>
-            ))}
-          </div>
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <input type="text" placeholder="Search templates..." value={search} onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-lg text-sm text-white focus:outline-none focus:border-indigo-500 transition" />
-          </div>
+      {/* Toolbar */}
+      <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center shadow-sm">
+        {/* Search */}
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
+          <input 
+            type="text" 
+            placeholder="Search templates..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#111827] focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:outline-none transition"
+          />
         </div>
+        
+        {/* Category Tabs */}
+        <div className="flex gap-2 overflow-x-auto w-full hide-scrollbar">
+          {categories.map(cat => (
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-xl transition ${
+                activeCategory === cat
+                  ? 'bg-indigo-50 text-indigo-700'
+                  : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111827]'
+              }`}
+            >
+              {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {loading ? (
-          <div className="py-12 text-center text-slate-500 text-sm">Loading templates...</div>
-        ) : filtered.length === 0 ? (
-          <div className="py-12 flex flex-col items-center justify-center text-slate-500 bg-slate-950/50 rounded-xl border border-dashed border-slate-800">
-            <FileText className="w-8 h-8 mb-3 opacity-50" />
-            <p className="text-sm font-medium text-slate-400">No templates found</p>
-            <p className="text-xs mt-1">Try adjusting your filters or create a new one.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filtered.map(t => (
-              <div key={t.id} className="bg-slate-950 border border-slate-800 rounded-xl p-4 group hover:border-slate-700 transition flex flex-col">
-                <div className="aspect-video bg-slate-900 rounded-lg border border-slate-800 mb-4 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-500/50 transition-colors">
-                  <FileText className="w-8 h-8 text-slate-700 group-hover:scale-110 transition-transform" />
-                  <div className="absolute inset-0 bg-slate-900/80 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity gap-2 backdrop-blur-sm">
-                    <button onClick={() => setPreviewTemplate(t)}
-                      className="p-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition tooltip" title="Preview">
-                      <Eye className="w-4 h-4" />
+      {/* Grid */}
+      {loading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="bg-white border border-gray-200 rounded-2xl animate-pulse h-56"></div>
+          ))}
+        </div>
+      ) : filteredTemplates.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          {filteredTemplates.map(template => (
+            <div key={template.id} className="group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all overflow-hidden flex flex-col">
+              
+              <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100" style={{ height: 140 }}>
+                <iframe
+                  srcDoc={template.htmlContent}
+                  title={template.name}
+                  scrolling="no"
+                  style={{
+                    width: '800px',
+                    height: '640px',
+                    transform: 'scale(0.225)',
+                    transformOrigin: 'top left',
+                    pointerEvents: 'none',
+                    border: 'none',
+                  }}
+                />
+                
+                {/* Hover overlay */}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+                  <button onClick={() => setPreviewTemplate(template)} className="px-3 py-1.5 bg-white text-[#111827] text-xs font-semibold rounded-lg shadow hover:bg-gray-50 transition">Preview</button>
+                  {template.userId !== null && (
+                    <Link href={`/dashboard/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit</Link>
+                  )}
+                </div>
+
+                {template.userId === null && (
+                  <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/70 backdrop-blur-sm text-white text-[10px] font-bold rounded-full">System</span>
+                )}
+              </div>
+
+              <div className="p-3 flex-1 flex flex-col justify-center relative">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
+                    <p className="text-xs text-[#6B7280] mt-0.5">{template.category} · {relativeTime(template.createdAt)}</p>
+                  </div>
+                  <div className="relative flex-shrink-0">
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === template.id ? null : template.id); }}
+                      className="p-1 rounded-md text-gray-400 hover:text-[#111827] hover:bg-gray-100 transition"
+                    >
+                      <MoreHorizontal className="w-5 h-5" />
                     </button>
-                    {t.userId !== null && (
-                      <Link href={`/dashboard/templates/edit/${t.id}`}
-                        className="p-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition tooltip" title="Edit">
-                        <Edit className="w-4 h-4" />
-                      </Link>
+                    {openMenuId === template.id && (
+                      <div className="absolute right-0 top-full mt-1 w-36 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10" onClick={e => e.stopPropagation()}>
+                        <button onClick={() => { setPreviewTemplate(template); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50">Preview</button>
+                        {template.userId !== null && (
+                          <Link href={`/dashboard/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50">Edit</Link>
+                        )}
+                        <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50 disabled:opacity-50">
+                          {duplicating === template.id ? 'Duplicating...' : 'Duplicate'}
+                        </button>
+                        {template.userId !== null && (
+                          <button onClick={() => { setConfirmDeleteId(template.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
-                <div className="flex items-start justify-between gap-2 mt-auto">
-                  <div className="min-w-0">
-                    <p className="text-sm font-bold text-white truncate">{t.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{t.category} • {t.userId ? "Custom" : "System"}</p>
-                  </div>
-                  {t.userId !== null && (
-                    <button onClick={() => deleteTemplate(t.id)} className="text-slate-500 hover:text-red-400 p-1">
-                      <Trash className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
               </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {showCreate && (
-        <CreateModal 
-          onClose={() => setShowCreate(false)} 
-          onSuccess={(t) => setTemplates([t, ...templates])} 
-        />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="py-24 flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl shadow-sm">
+          <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
+            <FileText className="w-8 h-8 text-[#6B7280]" />
+          </div>
+          <h3 className="text-lg font-bold text-[#111827] mb-2">No templates yet</h3>
+          <p className="text-sm text-[#6B7280] mb-6">Create your first email template to get started</p>
+          <Link href="/dashboard/templates/new" className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
+            Create your first template
+          </Link>
+        </div>
       )}
 
+      {/* Delete Confirmation */}
+      {confirmDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111827]/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-gray-200">
+            <h3 className="text-lg font-bold text-[#111827] mb-2">Delete Template</h3>
+            <p className="text-sm text-[#6B7280] mb-6">Are you sure you want to delete this template? This cannot be undone.</p>
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm font-medium text-[#111827] bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl transition">
+                Cancel
+              </button>
+              <button onClick={() => handleDelete(confirmDeleteId)} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition">
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview Modal */}
       {previewTemplate && (
-        <PreviewModal 
-          template={previewTemplate} 
-          onClose={() => setPreviewTemplate(null)} 
-        />
+        <div className="fixed inset-0 z-50 bg-[#F8FAFC] flex flex-col">
+          <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
+            <div>
+              <h3 className="font-bold text-[#111827]">{previewTemplate.name}</h3>
+              <p className="text-sm text-[#6B7280]">{previewTemplate.category}</p>
+            </div>
+            
+            <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200">
+              <button 
+                onClick={() => setPreviewDevice('desktop')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${previewDevice === 'desktop' ? 'bg-white text-[#111827] shadow-sm' : 'text-[#6B7280] hover:text-[#111827]'}`}
+              >
+                Desktop
+              </button>
+              <button 
+                onClick={() => setPreviewDevice('mobile')}
+                className={`px-3 py-1.5 text-sm font-medium rounded-lg transition ${previewDevice === 'mobile' ? 'bg-white text-[#111827] shadow-sm' : 'text-[#6B7280] hover:text-[#111827]'}`}
+              >
+                Mobile
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {previewTemplate.userId !== null && (
+                <Link href={`/dashboard/templates/${previewTemplate.id}/edit`} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
+                  Edit
+                </Link>
+              )}
+              <button onClick={() => setPreviewTemplate(null)} className="p-2 text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 rounded-lg transition">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 bg-gray-100 overflow-auto flex justify-center p-8">
+            <div 
+              className={`bg-white shadow-lg transition-all duration-300 ${previewDevice === 'mobile' ? 'w-[375px] h-[812px] rounded-[2rem] border-8 border-gray-900 overflow-hidden' : 'w-[800px] min-h-full rounded-none'}`}
+            >
+              <iframe
+                srcDoc={previewTemplate.htmlContent}
+                title={previewTemplate.name}
+                className="w-full h-full border-0"
+              />
+            </div>
+          </div>
+        </div>
       )}
     </div>
-  );
+  )
 }

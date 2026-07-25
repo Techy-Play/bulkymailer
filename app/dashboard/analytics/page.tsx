@@ -45,10 +45,10 @@ export default function AnalyticsPage() {
     // Generate some fake aggregated stats based on the timeline
     const multiplier = timeline === "24H" ? 1 : timeline === "1W" ? 7 : timeline === "1M" ? 30 : 180;
     return [
-      { label: "Total Sent", value: (450 * multiplier).toLocaleString(), icon: Mail, color: "text-blue-400" },
-      { label: "Avg Open Rate", value: "48.2%", icon: Eye, color: "text-emerald-400" },
-      { label: "Avg Click Rate", value: "12.4%", icon: MousePointerClick, color: "text-indigo-400" },
-      { label: "Active Subs", value: "3,240", icon: Users, color: "text-violet-400" },
+      { label: "Total Sent", value: (450 * multiplier).toLocaleString(), icon: Mail, color: "text-blue-600", bg: "bg-blue-100" },
+      { label: "Avg Open Rate", value: "48.2%", icon: Eye, color: "text-emerald-600", bg: "bg-emerald-100" },
+      { label: "Avg Click Rate", value: "12.4%", icon: MousePointerClick, color: "text-indigo-600", bg: "bg-indigo-100" },
+      { label: "Active Subs", value: "3,240", icon: Users, color: "text-violet-600", bg: "bg-violet-100" },
     ];
   };
 
@@ -56,15 +56,15 @@ export default function AnalyticsPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white">Analytics</h1>
-          <p className="text-sm text-slate-400 mt-1">Track your campaign performance</p>
+          <h1 className="text-2xl font-extrabold text-[#111827]">Analytics</h1>
+          <p className="text-sm text-[#6B7280] mt-1">Track your campaign performance</p>
         </div>
-        <div className="flex items-center gap-2 bg-slate-800 p-1.5 rounded-lg border border-slate-700">
-          <Calendar className="w-4 h-4 text-slate-400 ml-2" />
+        <div className="flex items-center gap-2 bg-white p-1.5 rounded-lg border border-gray-200 shadow-sm">
+          <Calendar className="w-4 h-4 text-gray-500 ml-2" />
           <select 
             value={timeline} 
             onChange={(e) => setTimeline(e.target.value as Timeline)}
-            className="bg-transparent text-sm text-white font-semibold focus:outline-none px-2 py-1 appearance-none cursor-pointer"
+            className="bg-transparent text-sm text-[#111827] font-semibold focus:outline-none px-2 py-1 appearance-none cursor-pointer"
           >
             <option value="24H">Last 24 Hours</option>
             <option value="1W">Last 7 Days</option>
@@ -76,34 +76,34 @@ export default function AnalyticsPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {getStats().map((stat, i) => (
-          <div key={i} className="bg-slate-900 border border-slate-800 p-5 rounded-2xl">
+          <div key={i} className="bg-white border border-gray-200 p-5 rounded-2xl shadow-sm">
             <div className="flex items-center gap-3 mb-2">
-              <div className={`w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center`}>
+              <div className={`w-8 h-8 rounded-lg ${stat.bg} flex items-center justify-center`}>
                 <stat.icon className={`w-4 h-4 ${stat.color}`} />
               </div>
-              <span className="text-sm font-semibold text-slate-400">{stat.label}</span>
+              <span className="text-sm font-semibold text-[#6B7280]">{stat.label}</span>
             </div>
-            <p className="text-2xl font-bold text-white">{stat.value}</p>
+            <p className="text-2xl font-bold text-[#111827]">{stat.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6">
+      <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
         <div className="flex items-center gap-3 mb-6">
-          <BarChart3 className="w-5 h-5 text-indigo-400" />
-          <h2 className="text-lg font-bold text-white">Engagement Overview</h2>
+          <BarChart3 className="w-5 h-5 text-indigo-600" />
+          <h2 className="text-lg font-bold text-[#111827]">Engagement Overview</h2>
         </div>
         
         <div className="h-[400px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <Line type="monotone" dataKey="opens" stroke="#34d399" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Opens" />
-              <Line type="monotone" dataKey="clicks" stroke="#818cf8" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Clicks" />
-              <CartesianGrid stroke="#1e293b" strokeDasharray="5 5" vertical={false} />
-              <XAxis dataKey="name" stroke="#64748b" tick={{ fill: '#64748b', fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
-              <YAxis stroke="#64748b" tick={{ fill: '#64748b', fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
+              <Line type="monotone" dataKey="opens" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Opens" />
+              <Line type="monotone" dataKey="clicks" stroke="#6366f1" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} name="Clicks" />
+              <CartesianGrid stroke="#f3f4f6" strokeDasharray="5 5" vertical={false} />
+              <XAxis dataKey="name" stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
+              <YAxis stroke="#9ca3af" tick={{ fill: '#6b7280', fontSize: 12 }} tickMargin={10} axisLine={false} tickLine={false} />
               <Tooltip 
-                contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '12px', color: '#f8fafc' }}
+                contentStyle={{ backgroundColor: '#ffffff', borderColor: '#e5e7eb', borderRadius: '12px', color: '#111827', boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}
                 itemStyle={{ fontWeight: 'bold' }}
               />
               <Legend wrapperStyle={{ paddingTop: '20px' }} />

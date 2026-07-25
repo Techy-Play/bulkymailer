@@ -12,7 +12,8 @@ export async function GET(req: NextRequest) {
       where: { userId },
       include: {
         template: { select: { name: true } },
-        contactList: { select: { name: true } }
+        contactList: { select: { name: true } },
+        senderProfile: { select: { fromName: true, fromEmail: true } }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -29,17 +30,18 @@ export async function POST(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const { subject, templateId, contactListId, senderProfileId } = await req.json();
+    const { subject, campaignName, templateId, contactListId, senderProfileId } = await req.json();
 
-    if (!subject || !templateId || !contactListId) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!subject || !contactListId) {
+      return NextResponse.json({ error: "Missing required fields: subject and contactListId" }, { status: 400 });
     }
 
     const campaign = await db.campaign.create({
       data: {
         userId,
         subject,
-        templateId,
+        campaignName: campaignName || subject,
+        templateId: templateId || null,
         contactListId,
         senderProfileId: senderProfileId || null,
         status: CampaignStatus.DRAFT

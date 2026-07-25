@@ -28,6 +28,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
     
     if (!campaign.template) return NextResponse.json({ error: "Campaign template missing" }, { status: 400 });
+    if (!campaign.contactList) return NextResponse.json({ error: "No contact list assigned to this campaign" }, { status: 400 });
 
     const contacts = campaign.contactList.contacts;
     if (contacts.length === 0) {
@@ -39,7 +40,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       where: { id: campaignId },
       data: {
         status: CampaignStatus.QUEUED,
-        renderedHtml: campaign.template.htmlContent,
+        htmlSnapshot: campaign.template.htmlContent,
         subjectSnapshot: campaign.subject,
         totalRecipients: contacts.length,
         startedAt: new Date()

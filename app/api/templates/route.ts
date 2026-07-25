@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { name, category, htmlContent } = await req.json();
+    const { name, category, htmlContent, description, previewText } = await req.json();
 
     if (!name || !htmlContent) {
       return NextResponse.json({ error: "Name and HTML content are required" }, { status: 400 });
@@ -46,6 +46,8 @@ export async function POST(req: NextRequest) {
         name,
         category: category || TemplateCategory.GENERAL,
         htmlContent,
+        description,
+        previewText,
         userId
       }
     });

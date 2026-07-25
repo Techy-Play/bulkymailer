@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Mail, Lock, ArrowRight, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { LoadingButton } from "@/components/ui/loading-button";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -165,20 +166,13 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <button
+            <LoadingButton
               type="submit"
-              disabled={loading}
+              loading={loading}
               className="w-full py-3 bg-[#111827] hover:bg-black disabled:opacity-60 text-white font-semibold text-sm rounded-xl shadow-sm flex items-center justify-center gap-2 transition-colors mt-2"
             >
-              {loading ? (
-                <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                </svg>
-              ) : (
-                <>Sign In <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
+              Sign In <ArrowRight className="w-4 h-4" />
+            </LoadingButton>
           </form>
         </div>
 
