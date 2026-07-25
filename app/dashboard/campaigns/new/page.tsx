@@ -46,7 +46,16 @@ export default function NewCampaignPage() {
       fetch("/api/contacts/lists").then(r => r.json()),
       fetch("/api/sender-profiles").then(r => r.json())
     ]).then(([tData, lData, sData]) => {
-      if (tData.templates) setTemplates(tData.templates);
+      if (tData.templates) {
+        setTemplates(tData.templates);
+        // Pre-select template if passed in URL
+        const searchParams = new URLSearchParams(window.location.search);
+        const initialTemplateId = searchParams.get("templateId");
+        if (initialTemplateId) {
+          const t = tData.templates.find((tpl: any) => tpl.id === initialTemplateId);
+          if (t) setSelectedTemplate(t);
+        }
+      }
       if (lData.lists) setLists(lData.lists);
       if (sData.senderProfiles) {
         setSenders(sData.senderProfiles);
