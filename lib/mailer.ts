@@ -1,17 +1,124 @@
 import nodemailer from "nodemailer";
 
+const smtpPass = process.env.SMTP_PASS ? process.env.SMTP_PASS.replace(/\s+/g, "") : "";
+
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
+  host: process.env.SMTP_HOST || "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT ?? 587),
   secure: Number(process.env.SMTP_PORT) === 465,
   auth: {
     user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
+    pass: smtpPass,
   },
 });
 
-const FROM = process.env.SMTP_FROM ?? "BulkyMailer <noreply@bulkymailer.com>";
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+/**
+ * Robust Merge Tag Parser & Replacer
+ * Evaluates Liquid / Handlebars style merge tags (e.g. {{currentYear | date: "%Y"}}, {{firstName | default: "there"}})
+ */
+export function renderTemplateMergeTags(
+  html: string,
+  vars: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    company?: string;
+    unsubscribeUrl?: string;
+    customFields?: Record<string, any>;
+  }
+): string {
+  const currentYear = new Date().getFullYear().toString();
+  const currentDate = new Date().toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  let rendered = html;
+
+  // 1. Current Year tags: {{currentYear | date: "%Y"}}, {{currentYear}}, {{current_year}}, {{year}}, {{date: "%Y"}}
+  rendered = rendered.replace(/\{\{\s*(?:currentYear|current_year|year|now|date)\s*(?:\|\s*date:[^}]*)?\s*\}\}/gi, currentYear);
+
+  // 2. Current Date tags: {{currentDate}}, {{date}}, {{today}}
+  rendered = rendered.replace(/\{\{\s*(?:currentDate|current_date|today)\s*\}\}/gi, currentDate);
+
+  // 3. First Name with optional default value: {{firstName | default: "there"}}, {{firstName}}
+  rendered = rendered.replace(/\{\{\s*firstName(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
+    const defaultVal = d1 || d2 || d3 || "";
+    return vars.firstName?.trim() ? vars.firstName : (defaultVal || "there");
+  });
+
+  // 4. Last Name with optional default value: {{lastName | default: "..."}}
+  rendered = rendered.replace(/\{\{\s*lastName(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
+    const defaultVal = d1 || d2 || d3 || "";
+    return vars.lastName?.trim() ? vars.lastName : defaultVal;
+  });
+
+  // 5. Company Name: {{company | default: "..."}}, {{company}}
+  rendered = rendered.replace(/\{\{\s*company(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
+    const defaultVal = d1 || d2 || d3 || "BulkyMailer";
+    return vars.company?.trim() ? vars.company : defaultVal;
+  });
+
+  // 6. Email: {{email}}
+  rendered = rendered.replace(/\{\{\s*email\s*\}\}/gi, vars.email || "");
+
+  // 7. Unsubscribe URL: {{unsubscribeUrl}}
+  if (vars.unsubscribeUrl) {
+    rendered = rendered.replace(/\{\{\s*unsubscribeUrl\s*\}\}/gi, vars.unsubscribeUrl);
+  }
+
+  // 8. Custom fields: {{custom.x}}, {{customFields.x}}
+  if (vars.customFields) {
+    Object.entries(vars.customFields).forEach(([k, v]) => {
+      const reg = new RegExp(`\\{\\{\\s*(?:custom\\.|customFields\\.)?${k}\\s*\\}\\}`, 'gi');
+      rendered = rendered.replace(reg, String(v || ''));
+    });
+  }
+
+  // 9. Catch-all for any remaining raw liquid date filter tags
+  rendered = rendered.replace(/\{\{\s*[^}]*date:\s*(?:"%Y"|'%Y'|"%y"|'%y')\s*\}\}/gi, currentYear);
+
+  return rendered;
+}
+
+/**
+ * Gets a clean, SPF/DKIM aligned FROM address string.
+ * Gmail SMTP requires the authenticated email in the From header to avoid spam flags.
+ */
+function getFromHeader(): string {
+  const envFrom = process.env.SMTP_FROM;
+  const smtpUser = process.env.SMTP_USER;
+
+  if (smtpUser && smtpUser.endsWith("@gmail.com")) {
+    return `"BulkyMailer" <${smtpUser}>`;
+  }
+  return envFrom ?? `"BulkyMailer" <noreply@bulkymailer.com>`;
+}
+
+/**
+ * Converts HTML content to plain text to provide a fallback multipart text stream.
+ * Email clients (especially Gmail) flag HTML-only emails with missing text parts as spam.
+ */
+function htmlToPlainText(html: string): string {
+  return html
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/<br\s*[\/]?>/gi, "\n")
+    .replace(/<\/p>/gi, "\n\n")
+    .replace(/<\/h[1-6]>/gi, "\n\n")
+    .replace(/<\/li>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/\n\s+\n/g, "\n\n")
+    .trim();
+}
 
 // ---------------------------------------------------------------------------
 // OTP Verification Email (6-digit code)
@@ -25,7 +132,7 @@ export async function sendOtpEmail(
   const textContent = `Hey ${firstName},\n\nYour BulkyMailer verification code is: ${otp}\n\nThis code expires in 10 minutes. Never share it with anyone.\n\n— BulkyMailer`;
 
   await transporter.sendMail({
-    from: FROM,
+    from: getFromHeader(),
     to,
     subject: `${otp} is your BulkyMailer verification code`,
     html: `
@@ -71,7 +178,7 @@ export async function sendWelcomeEmail(
   const textContent = `Hey ${firstName},\n\nYour email is verified! Your account is now active.\nGo to your dashboard: ${APP_URL}/dashboard\n\n— BulkyMailer`;
 
   await transporter.sendMail({
-    from: FROM,
+    from: getFromHeader(),
     to,
     subject: `Welcome to BulkyMailer, ${firstName}!`,
     html: `
@@ -113,7 +220,7 @@ export async function sendPasswordResetEmail(
   const textContent = `Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\n— BulkyMailer`;
 
   await transporter.sendMail({
-    from: FROM,
+    from: getFromHeader(),
     to,
     subject: "Reset your BulkyMailer password",
     html: `
@@ -147,18 +254,51 @@ export async function sendPasswordResetEmail(
 }
 
 // ---------------------------------------------------------------------------
-// Generic Campaign Email
+// Campaign & Test Email Sender
 // ---------------------------------------------------------------------------
 
 export async function sendEmail(
   to: string,
   subject: string,
-  html: string
+  html: string,
+  isTestMail: boolean = false
 ): Promise<void> {
+  const plainText = htmlToPlainText(html);
+  const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
+
+  // Automatically append Anti-Spam compliance footer if missing
+  let finalHtml = html;
+  if (!finalHtml.toLowerCase().includes("unsubscribe")) {
+    finalHtml += `
+      <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#6b7280; font-family:sans-serif;">
+        <p style="margin:0 0 8px 0;">You received this email because you are subscribed to our mailing list.</p>
+        <p style="margin:0;">
+          <a href="${unsubscribeUrl}" style="color:#6366f1; text-decoration:underline;">Unsubscribe from this list</a>
+        </p>
+      </div>`;
+  }
+
+  const replyTo = process.env.SMTP_USER || "noreply@bulkymailer.com";
+
+  // For single test emails, omit bulk headers so email lands straight in Primary Inbox
+  const headers: Record<string, string> = {
+    "X-Auto-Response-Suppress": "OOF, AutoReply",
+    "List-Unsubscribe": `<${unsubscribeUrl}>`,
+    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    "X-Report-Abuse-To": replyTo,
+  };
+
+  if (!isTestMail) {
+    headers["Precedence"] = "bulk";
+  }
+
   await transporter.sendMail({
-    from: FROM,
+    from: getFromHeader(),
     to,
+    replyTo,
     subject,
-    html,
+    html: finalHtml,
+    text: plainText,
+    headers,
   });
 }

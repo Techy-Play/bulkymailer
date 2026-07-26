@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { Mail, Menu, X, ArrowRight } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
+import { Mail, Menu, X, User, LogOut } from "lucide-react";
 
 const NAV_LINKS = [
   { name: "Features", href: "/features" },
@@ -15,7 +15,10 @@ const NAV_LINKS = [
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string } | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -29,11 +32,49 @@ export function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const checkAuth = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.authenticated && data.user) {
+          setUser(data.user);
+        } else {
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+    } catch {
+      setUser(null);
+    } finally {
+      setLoadingUser(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+    window.addEventListener("auth-change", checkAuth);
+    return () => window.removeEventListener("auth-change", checkAuth);
+  }, []);
+
+  async function handleSignOut() {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      setUser(null);
+      window.dispatchEvent(new Event("auth-change"));
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
   return (
     <header
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
         isScrolled
-          ? "light-nav py-3 shadow-xs"
+          ? "light-nav py-3 shadow-xs bg-white/90 backdrop-blur-md border-b border-gray-200/80"
           : "bg-transparent py-4"
       }`}
     >
@@ -73,29 +114,63 @@ export function Navbar() {
           </nav>
 
           {/* Right Action Buttons */}
-          <div className="hidden sm:flex items-center gap-4">
-            <Link
-              href="/login"
-              className="text-sm font-medium text-[#4B5563] hover:text-[#111827] transition-colors"
-            >
-              Log in
-            </Link>
-            <Link
-              href="/register"
-              className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-[#111827] hover:bg-black rounded-lg shadow-xs transition-all active:scale-[0.98]"
-            >
-              Start Free
-            </Link>
+          <div className="hidden sm:flex items-center gap-3">
+            {loadingUser ? (
+              <div className="w-20 h-9 bg-gray-100 rounded-lg animate-pulse" />
+            ) : user ? (
+              // Logged-in State Navigation Actions (Profile & Sign Out ONLY)
+              <>
+                <Link
+                  href="/dashboard/profile"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-[#374151] hover:text-[#111827] hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 bg-white shadow-2xs"
+                >
+                  <User className="w-4 h-4 text-gray-500" />
+                  Profile
+                </Link>
+                <button
+                  onClick={handleSignOut}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors border border-red-100 bg-white shadow-2xs"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign out
+                </button>
+              </>
+            ) : (
+              // Guest State Navigation Actions
+              <>
+                <Link
+                  href="/login"
+                  className="text-sm font-medium text-[#4B5563] hover:text-[#111827] transition-colors px-2 py-1"
+                >
+                  Log in
+                </Link>
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center px-4 py-2 text-sm font-semibold text-white bg-[#111827] hover:bg-black rounded-lg shadow-xs transition-all active:scale-[0.98]"
+                >
+                  Start Free
+                </Link>
+              </>
+            )}
           </div>
 
           {/* Mobile Hamburger Toggle */}
-          <div className="flex md:hidden items-center gap-3">
-            <Link
-              href="/register"
-              className="px-3 py-1.5 text-xs font-semibold text-white bg-[#111827] rounded-md"
-            >
-              Start Free
-            </Link>
+          <div className="flex md:hidden items-center gap-2">
+            {user ? (
+              <Link
+                href="/dashboard/profile"
+                className="px-3 py-1.5 text-xs font-semibold text-gray-700 border border-gray-200 bg-white rounded-md"
+              >
+                Profile
+              </Link>
+            ) : (
+              <Link
+                href="/register"
+                className="px-3 py-1.5 text-xs font-semibold text-white bg-[#111827] rounded-md"
+              >
+                Start Free
+              </Link>
+            )}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="p-2 text-[#4B5563] hover:text-[#111827] rounded-md hover:bg-gray-100 focus:outline-none"
@@ -122,20 +197,43 @@ export function Navbar() {
               </Link>
             ))}
             <div className="pt-4 border-t border-gray-100 flex flex-col gap-2">
-              <Link
-                href="/login"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 text-sm font-medium text-[#374151] bg-gray-50 border border-gray-200 rounded-md"
-              >
-                Log in
-              </Link>
-              <Link
-                href="/register"
-                onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-2 text-sm font-semibold text-white bg-[#111827] rounded-md"
-              >
-                Start Free
-              </Link>
+              {user ? (
+                <>
+                  <Link
+                    href="/dashboard/profile"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2 text-sm font-medium text-[#374151] bg-gray-50 border border-gray-200 rounded-md flex items-center justify-center gap-2"
+                  >
+                    <User className="w-4 h-4" /> Profile
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setMobileMenuOpen(false);
+                      handleSignOut();
+                    }}
+                    className="w-full text-center py-2 text-sm font-medium text-red-600 bg-red-50 border border-red-100 rounded-md flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" /> Sign out
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Link
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2 text-sm font-medium text-[#374151] bg-gray-50 border border-gray-200 rounded-md"
+                  >
+                    Log in
+                  </Link>
+                  <Link
+                    href="/register"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-center py-2 text-sm font-semibold text-white bg-[#111827] rounded-md"
+                  >
+                    Start Free
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>

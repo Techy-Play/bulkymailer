@@ -1,16 +1,39 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Send, Play } from "lucide-react";
+import { ArrowRight, CheckCircle2, Send, Play, LayoutDashboard } from "lucide-react";
 import KineticGrid from "@/components/ui/kinetic-grid";
 
 export function HeroSection() {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const checkAuth = async () => {
+    try {
+      const res = await fetch("/api/auth/me");
+      if (res.ok) {
+        const data = await res.json();
+        setIsLoggedIn(data.authenticated && !!data.user);
+      } else {
+        setIsLoggedIn(false);
+      }
+    } catch {
+      setIsLoggedIn(false);
+    }
+  };
+
+  useEffect(() => {
+    checkAuth();
+    window.addEventListener("auth-change", checkAuth);
+    return () => window.removeEventListener("auth-change", checkAuth);
+  }, []);
+
   return (
     <KineticGrid globalColor="light" className="min-h-0 py-12 lg:py-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
-          {/* Left Column: Clear Apple/Stripe Typography & CTAs */}
+          {/* Left Column: Clear Typography & CTAs */}
           <div className="lg:col-span-6 space-y-6 text-left">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold text-indigo-700">
               <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
@@ -29,13 +52,24 @@ export function HeroSection() {
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-              <Link
-                href="/register"
-                className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[#111827] hover:bg-black rounded-lg shadow-sm transition-all group"
-              >
-                Start Free — 100 emails/month
-                <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-              </Link>
+              {isLoggedIn ? (
+                <Link
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all group"
+                >
+                  <LayoutDashboard className="w-4 h-4 mr-2" />
+                  Go to Dashboard
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              ) : (
+                <Link
+                  href="/register"
+                  className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-[#111827] hover:bg-black rounded-lg shadow-sm transition-all group"
+                >
+                  Start Free — 100 emails/month
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
               <Link
                 href="/docs"
                 className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-[#374151] bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow-2xs transition-all"

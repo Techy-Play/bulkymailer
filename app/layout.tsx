@@ -108,6 +108,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={`${polarSans.variable} ${superXDisplay.variable} ${polarMono.variable} h-full antialiased scroll-smooth`}
     >
       <head>
@@ -116,7 +117,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-full flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-indigo-500 selection:text-white font-sans">
+      <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-indigo-500 selection:text-white font-sans">
         {children}
       </body>
     </html>

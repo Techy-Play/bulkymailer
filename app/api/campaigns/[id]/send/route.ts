@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId, checkAndIncrementEmailQuota } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { CampaignStatus } from "@/app/generated/prisma/enums";
-import { sendEmail } from "@/lib/mailer";
+import { sendEmail, renderTemplateMergeTags } from "@/lib/mailer";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -35,6 +35,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Contact list is empty" }, { status: 400 });
     }
 
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
     // 2. Mark as QUEUED and take snapshot
     await db.campaign.update({
       where: { id: campaignId },
@@ -47,8 +49,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     });
 
-    // 3. Start Async Sending Process (Simulated background worker)
-    // We execute this without awaiting so the API responds immediately
+    // 3. Start Async Sending Process
     (async () => {
       try {
         await db.campaign.update({ where: { id: campaignId }, data: { status: CampaignStatus.SENDING } });
@@ -66,22 +67,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
             if (!quota.allowed) {
               console.error("[campaign_send] Quota exceeded for user", userId);
               failed += (contacts.length - (successful + failed));
-              break; // Stop sending
+              break;
             }
 
-            // Replace simple variables
-            let personalizedHtml = htmlTemplate
-              .replace(/{{firstName}}/gi, contact.firstName || "")
-              .replace(/{{lastName}}/gi, contact.lastName || "")
-              .replace(/{{email}}/gi, contact.email || "");
-
-            // If customFields exist, replace them too
-            if (contact.customFields && typeof contact.customFields === 'object') {
-              Object.entries(contact.customFields as Record<string, string>).forEach(([k, v]) => {
-                const regex = new RegExp(`{{custom.${k}}}`, 'gi');
-                personalizedHtml = personalizedHtml.replace(regex, v || "");
-              });
-            }
+            // Robust Liquid & Handlebars merge tag renderer (currentYear, dates, defaults, customFields)
+            const personalizedHtml = renderTemplateMergeTags(htmlTemplate, {
+              firstName: contact.firstName || "",
+              lastName: contact.lastName || "",
+              email: contact.email || "",
+              company: (contact.customFields as any)?.company || "",
+              unsubscribeUrl: `${appUrl}/unsubscribe?email=${encodeURIComponent(contact.email)}`,
+              customFields: contact.customFields as any,
+            });
 
             // Send Email
             await sendEmail(contact.email, subject, personalizedHtml);
