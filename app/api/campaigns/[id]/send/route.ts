@@ -11,11 +11,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id: campaignId } = await params;
 
-    // 1. Fetch Campaign with Template and Contacts
+    // 1. Fetch Campaign with Template, Sender Profile and Contacts
     const campaign = await db.campaign.findFirst({
       where: { id: campaignId, userId },
       include: {
         template: true,
+        senderProfile: true,
         contactList: {
           include: { contacts: true }
         }
@@ -40,6 +41,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Campaign email content is empty" }, { status: 400 });
     }
 
+    // Determine custom verified sender address (send.au-acadex.com)
+    let fromOverride: string | null = null;
+    if (campaign.senderProfile) {
+      fromOverride = `"${campaign.senderProfile.fromName}" <${campaign.senderProfile.fromEmail}>`;
+    }
+
     // 2. Mark as QUEUED and preserve edited htmlSnapshot
     await db.campaign.update({
       where: { id: campaignId },
@@ -47,6 +54,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         status: CampaignStatus.QUEUED,
         htmlSnapshot: finalHtmlSnapshot,
         subjectSnapshot: campaign.subject,
+        fromNameSnapshot: campaign.senderProfile?.fromName || "BulkyMailer",
+        fromEmailSnapshot: campaign.senderProfile?.fromEmail || "notifications@send.au-acadex.com",
         totalRecipients: contacts.length,
         startedAt: new Date()
       }
@@ -73,7 +82,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               break;
             }
 
-            // Robust Liquid & Handlebars merge tag renderer (currentYear, dates, defaults, customFields)
+            // Robust Liquid & Handlebars merge tag renderer
             const personalizedHtml = renderTemplateMergeTags(htmlTemplate, {
               firstName: contact.firstName || "",
               lastName: contact.lastName || "",
@@ -83,8 +92,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               customFields: contact.customFields as any,
             });
 
-            // Send Email via Resend
-            await sendEmail(contact.email, subject, personalizedHtml);
+            // Send Email via Resend with custom verified domain send.au-acadex.com
+            await sendEmail(contact.email, subject, personalizedHtml, false, fromOverride);
             successful++;
           } catch (err) {
             console.error(`[campaign_send] Failed for ${contact.email}`, err);

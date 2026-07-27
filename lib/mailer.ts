@@ -17,6 +17,7 @@ const transporter = nodemailer.createTransport({
 });
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const VERIFIED_DOMAIN = "send.au-acadex.com";
 
 /**
  * Robust Merge Tag Parser & Replacer
@@ -89,17 +90,34 @@ export function renderTemplateMergeTags(
 }
 
 /**
- * Gets a clean, SPF/DKIM aligned FROM address string.
+ * Gets a clean, SPF/DKIM aligned FROM address string matching custom verified domain send.au-acadex.com
  */
-function getFromHeader(): string {
-  const envFrom = process.env.RESEND_FROM || process.env.SMTP_FROM;
-  const smtpUser = process.env.SMTP_USER;
+export function getFromHeader(fromOverride?: string | null): string {
+  if (fromOverride && fromOverride.trim()) {
+    let name = "BulkyMailer";
+    let email = fromOverride.trim();
 
-  if (envFrom) return envFrom;
-  if (smtpUser && smtpUser.endsWith("@gmail.com")) {
-    return `"BulkyMailer" <${smtpUser}>`;
+    if (fromOverride.includes("<")) {
+      const match = fromOverride.match(/^"?(.*?)"?\s*<([^>]+)>/);
+      if (match) {
+        name = match[1] || "BulkyMailer";
+        email = match[2];
+      }
+    }
+
+    // Ensure sending address domain matches send.au-acadex.com
+    if (!email.endsWith(`@${VERIFIED_DOMAIN}`)) {
+      const localPart = email.split("@")[0] || "notifications";
+      email = `${localPart}@${VERIFIED_DOMAIN}`;
+    }
+
+    return `"${name}" <${email}>`;
   }
-  return `"BulkyMailer" <onboarding@resend.dev>`;
+
+  const envFrom = process.env.RESEND_FROM;
+  if (envFrom) return envFrom;
+
+  return `"BulkyMailer" <notifications@${VERIFIED_DOMAIN}>`;
 }
 
 /**
@@ -133,10 +151,11 @@ export async function sendOtpEmail(
   firstName: string
 ): Promise<void> {
   const textContent = `Hey ${firstName},\n\nYour BulkyMailer verification code is: ${otp}\n\nThis code expires in 10 minutes. Never share it with anyone.\n\n— BulkyMailer`;
+  const fromHeader = getFromHeader();
 
   if (resend) {
     const { error } = await resend.emails.send({
-      from: getFromHeader(),
+      from: fromHeader,
       to,
       subject: `${otp} is your BulkyMailer verification code`,
       html: `
@@ -173,7 +192,7 @@ export async function sendOtpEmail(
   }
 
   await transporter.sendMail({
-    from: getFromHeader(),
+    from: fromHeader,
     to,
     subject: `${otp} is your BulkyMailer verification code`,
     html: `
@@ -217,10 +236,11 @@ export async function sendWelcomeEmail(
   firstName: string
 ): Promise<void> {
   const textContent = `Hey ${firstName},\n\nYour email is verified! Your account is now active.\nGo to your dashboard: ${APP_URL}/dashboard\n\n— BulkyMailer`;
+  const fromHeader = getFromHeader();
 
   if (resend) {
     const { error } = await resend.emails.send({
-      from: getFromHeader(),
+      from: fromHeader,
       to,
       subject: `Welcome to BulkyMailer, ${firstName}!`,
       html: `
@@ -252,7 +272,7 @@ export async function sendWelcomeEmail(
   }
 
   await transporter.sendMail({
-    from: getFromHeader(),
+    from: fromHeader,
     to,
     subject: `Welcome to BulkyMailer, ${firstName}!`,
     html: `
@@ -292,10 +312,11 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const resetLink = `${APP_URL}/reset-password?token=${token}`;
   const textContent = `Hello,\n\nWe received a request to reset your password. Click the link below to set a new password:\n\n${resetLink}\n\nIf you did not request this, please ignore this email.\n\n— BulkyMailer`;
+  const fromHeader = getFromHeader();
 
   if (resend) {
     const { error } = await resend.emails.send({
-      from: getFromHeader(),
+      from: fromHeader,
       to,
       subject: "Reset your BulkyMailer password",
       html: `
@@ -330,7 +351,7 @@ export async function sendPasswordResetEmail(
   }
 
   await transporter.sendMail({
-    from: getFromHeader(),
+    from: fromHeader,
     to,
     subject: "Reset your BulkyMailer password",
     html: `
@@ -364,17 +385,19 @@ export async function sendPasswordResetEmail(
 }
 
 // ---------------------------------------------------------------------------
-// Campaign & Test Email Sender (Resend API Engine + Nodemailer Fallback)
+// Campaign & Test Email Sender (Resend API Engine with Verified Domain send.au-acadex.com)
 // ---------------------------------------------------------------------------
 
 export async function sendEmail(
   to: string,
   subject: string,
   html: string,
-  isTestMail: boolean = false
+  isTestMail: boolean = false,
+  fromOverride?: string | null
 ): Promise<void> {
   const plainText = htmlToPlainText(html);
   const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
+  const fromHeader = getFromHeader(fromOverride);
 
   // Automatically append Anti-Spam compliance footer if missing
   let finalHtml = html;
@@ -391,7 +414,7 @@ export async function sendEmail(
   // 1. Resend API Engine (High deliverability bulk mailer)
   if (resend) {
     const { data, error } = await resend.emails.send({
-      from: getFromHeader(),
+      from: fromHeader,
       to,
       subject,
       html: finalHtml,
@@ -410,7 +433,7 @@ export async function sendEmail(
   }
 
   // 2. Nodemailer Fallback (when RESEND_API_KEY is omitted)
-  const replyTo = process.env.SMTP_USER || "noreply@bulkymailer.com";
+  const replyTo = process.env.SMTP_USER || "noreply@send.au-acadex.com";
 
   const headers: Record<string, string> = {
     "X-Auto-Response-Suppress": "OOF, AutoReply",
@@ -424,7 +447,7 @@ export async function sendEmail(
   }
 
   await transporter.sendMail({
-    from: getFromHeader(),
+    from: fromHeader,
     to,
     replyTo,
     subject,
@@ -439,11 +462,14 @@ export async function sendEmail(
 // ---------------------------------------------------------------------------
 
 export async function sendBulkEmailWithResend(
-  emails: Array<{ to: string; subject: string; html: string }>
+  emails: Array<{ to: string; subject: string; html: string }>,
+  fromOverride?: string | null
 ) {
+  const fromHeader = getFromHeader(fromOverride);
+
   if (!resend) {
     for (const item of emails) {
-      await sendEmail(item.to, item.subject, item.html);
+      await sendEmail(item.to, item.subject, item.html, false, fromOverride);
     }
     return;
   }
@@ -462,7 +488,7 @@ export async function sendBulkEmailWithResend(
     }
 
     return {
-      from: getFromHeader(),
+      from: fromHeader,
       to: item.to,
       subject: item.subject,
       html: finalHtml,
