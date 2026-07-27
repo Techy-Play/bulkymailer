@@ -21,7 +21,6 @@ const VERIFIED_DOMAIN = "send.au-acadex.com";
 
 /**
  * Robust Merge Tag Parser & Replacer
- * Evaluates Liquid / Handlebars style merge tags (e.g. {{currentYear | date: "%Y"}}, {{firstName | default: "there"}})
  */
 export function renderTemplateMergeTags(
   html: string,
@@ -43,39 +42,30 @@ export function renderTemplateMergeTags(
 
   let rendered = html;
 
-  // 1. Current Year tags: {{currentYear | date: "%Y"}}, {{currentYear}}, {{current_year}}, {{year}}, {{date: "%Y"}}
   rendered = rendered.replace(/\{\{\s*(?:currentYear|current_year|year|now|date)\s*(?:\|\s*date:[^}]*)?\s*\}\}/gi, currentYear);
-
-  // 2. Current Date tags: {{currentDate}}, {{date}}, {{today}}
   rendered = rendered.replace(/\{\{\s*(?:currentDate|current_date|today)\s*\}\}/gi, currentDate);
 
-  // 3. First Name with optional default value: {{firstName | default: "there"}}, {{firstName}}
   rendered = rendered.replace(/\{\{\s*firstName(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
     const defaultVal = d1 || d2 || d3 || "";
     return vars.firstName?.trim() ? vars.firstName : (defaultVal || "there");
   });
 
-  // 4. Last Name with optional default value: {{lastName | default: "..."}}
   rendered = rendered.replace(/\{\{\s*lastName(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
     const defaultVal = d1 || d2 || d3 || "";
     return vars.lastName?.trim() ? vars.lastName : defaultVal;
   });
 
-  // 5. Company Name: {{company | default: "..."}}, {{company}}
   rendered = rendered.replace(/\{\{\s*company(?:\s*\|\s*default:\s*(?:"([^"]*)"|'([^']*)'|([^}\s]+)))?\s*\}\}/gi, (_, d1, d2, d3) => {
     const defaultVal = d1 || d2 || d3 || "BulkyMailer";
     return vars.company?.trim() ? vars.company : defaultVal;
   });
 
-  // 6. Email: {{email}}
   rendered = rendered.replace(/\{\{\s*email\s*\}\}/gi, vars.email || "");
 
-  // 7. Unsubscribe URL: {{unsubscribeUrl}}
   if (vars.unsubscribeUrl) {
     rendered = rendered.replace(/\{\{\s*unsubscribeUrl\s*\}\}/gi, vars.unsubscribeUrl);
   }
 
-  // 8. Custom fields: {{custom.x}}, {{customFields.x}}
   if (vars.customFields) {
     Object.entries(vars.customFields).forEach(([k, v]) => {
       const reg = new RegExp(`\\{\\{\\s*(?:custom\\.|customFields\\.)?${k}\\s*\\}\\}`, 'gi');
@@ -83,14 +73,13 @@ export function renderTemplateMergeTags(
     });
   }
 
-  // 9. Catch-all for any remaining raw liquid date filter tags
   rendered = rendered.replace(/\{\{\s*[^}]*date:\s*(?:"%Y"|'%Y'|"%y"|'%y')\s*\}\}/gi, currentYear);
 
   return rendered;
 }
 
 /**
- * Gets a clean, SPF/DKIM aligned FROM address string matching custom verified domain send.au-acadex.com
+ * Gets a clean, SPF/DKIM aligned FROM address matching verified domain send.au-acadex.com
  */
 export function getFromHeader(fromOverride?: string | null): string {
   if (fromOverride && fromOverride.trim()) {
@@ -105,9 +94,8 @@ export function getFromHeader(fromOverride?: string | null): string {
       }
     }
 
-    // Ensure sending address domain matches send.au-acadex.com
     if (!email.endsWith(`@${VERIFIED_DOMAIN}`)) {
-      const localPart = email.split("@")[0] || "notifications";
+      const localPart = email.split("@")[0] || "hello";
       email = `${localPart}@${VERIFIED_DOMAIN}`;
     }
 
@@ -117,11 +105,11 @@ export function getFromHeader(fromOverride?: string | null): string {
   const envFrom = process.env.RESEND_FROM;
   if (envFrom) return envFrom;
 
-  return `"BulkyMailer" <notifications@${VERIFIED_DOMAIN}>`;
+  return `"BulkyMailer" <hello@${VERIFIED_DOMAIN}>`;
 }
 
 /**
- * Converts HTML content to plain text to provide a fallback multipart text stream.
+ * Converts HTML content to plain text to provide a mandatory multipart text stream.
  */
 function htmlToPlainText(html: string): string {
   return html
@@ -142,7 +130,7 @@ function htmlToPlainText(html: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// OTP Verification Email (6-digit code)
+// OTP Verification Email (Transactional - High Priority)
 // ---------------------------------------------------------------------------
 
 export async function sendOtpEmail(
@@ -156,6 +144,7 @@ export async function sendOtpEmail(
   if (resend) {
     const { error } = await resend.emails.send({
       from: fromHeader,
+      replyTo: `support@${VERIFIED_DOMAIN}`,
       to,
       subject: `${otp} is your BulkyMailer verification code`,
       html: `
@@ -180,9 +169,9 @@ export async function sendOtpEmail(
       Never share this code with anyone.<br>
       If you didn't create an account, you can safely ignore this email.
     </p>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
+      BulkyMailer Team
+    </div>
   </div>
 </body>
 </html>`,
@@ -195,40 +184,13 @@ export async function sendOtpEmail(
     from: fromHeader,
     to,
     subject: `${otp} is your BulkyMailer verification code`,
-    html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Verify your email</title>
-</head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
-  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
-    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">Verify your email</h1>
-    <p style="font-size:16px;line-height:1.5;margin-bottom:20px;color:#374151;">
-      Hey ${firstName},<br><br>
-      Use the code below to verify your BulkyMailer account. It expires in 10 minutes.
-    </p>
-    <div style="background:#f3f4f6;padding:20px;border-radius:8px;text-align:center;margin-bottom:20px;">
-      <span style="font-size:32px;font-weight:bold;letter-spacing:4px;color:#111827;">${otp}</span>
-    </div>
-    <p style="font-size:14px;color:#6b7280;line-height:1.5;">
-      Never share this code with anyone.<br>
-      If you didn't create an account, you can safely ignore this email.
-    </p>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
-  </div>
-</body>
-</html>`,
+    html: `<!DOCTYPE html><html lang="en"><body><div style="padding:20px;"><h1>Verify Code: ${otp}</h1></div></body></html>`,
     text: textContent,
   });
 }
 
 // ---------------------------------------------------------------------------
-// Welcome email (sent after OTP verification)
+// Welcome email
 // ---------------------------------------------------------------------------
 
 export async function sendWelcomeEmail(
@@ -241,6 +203,7 @@ export async function sendWelcomeEmail(
   if (resend) {
     const { error } = await resend.emails.send({
       from: fromHeader,
+      replyTo: `support@${VERIFIED_DOMAIN}`,
       to,
       subject: `Welcome to BulkyMailer, ${firstName}!`,
       html: `
@@ -260,9 +223,9 @@ export async function sendWelcomeEmail(
     <a href="${APP_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
       Go to Dashboard
     </a>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
+      BulkyMailer Team
+    </div>
   </div>
 </body>
 </html>`,
@@ -270,36 +233,6 @@ export async function sendWelcomeEmail(
     });
     if (!error) return;
   }
-
-  await transporter.sendMail({
-    from: fromHeader,
-    to,
-    subject: `Welcome to BulkyMailer, ${firstName}!`,
-    html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to BulkyMailer</title>
-</head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
-  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
-    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">You're in, ${firstName}!</h1>
-    <p style="font-size:16px;line-height:1.5;margin-bottom:30px;color:#374151;">
-      Your email is verified and your BulkyMailer account is active. You can now start creating and sending campaigns.
-    </p>
-    <a href="${APP_URL}/dashboard" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
-      Go to Dashboard
-    </a>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
-  </div>
-</body>
-</html>`,
-    text: textContent,
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -317,6 +250,7 @@ export async function sendPasswordResetEmail(
   if (resend) {
     const { error } = await resend.emails.send({
       from: fromHeader,
+      replyTo: `support@${VERIFIED_DOMAIN}`,
       to,
       subject: "Reset your BulkyMailer password",
       html: `
@@ -336,12 +270,9 @@ export async function sendPasswordResetEmail(
     <a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
       Reset Password
     </a>
-    <p style="font-size:14px;color:#6b7280;line-height:1.5;margin-top:30px;">
-      If you did not request a password reset, you can safely ignore this email.
-    </p>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e5e7eb;font-size:12px;color:#9ca3af;text-align:center;">
+      BulkyMailer Team
+    </div>
   </div>
 </body>
 </html>`,
@@ -349,43 +280,10 @@ export async function sendPasswordResetEmail(
     });
     if (!error) return;
   }
-
-  await transporter.sendMail({
-    from: fromHeader,
-    to,
-    subject: "Reset your BulkyMailer password",
-    html: `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reset your password</title>
-</head>
-<body style="margin:0;padding:0;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#111827;">
-  <div style="max-w-md;margin:0 auto;padding:40px 20px;">
-    <h1 style="font-size:20px;font-weight:700;margin-bottom:20px;">Reset your password</h1>
-    <p style="font-size:16px;line-height:1.5;margin-bottom:30px;color:#374151;">
-      We received a request to reset the password for your BulkyMailer account. Click the button below to set a new password. This link expires in 1 hour.
-    </p>
-    <a href="${resetLink}" style="display:inline-block;padding:12px 24px;background:#111827;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;font-size:16px;">
-      Reset Password
-    </a>
-    <p style="font-size:14px;color:#6b7280;line-height:1.5;margin-top:30px;">
-      If you did not request a password reset, you can safely ignore this email.
-    </p>
-    <p style="font-size:14px;color:#9ca3af;margin-top:40px;">
-      — BulkyMailer Team
-    </p>
-  </div>
-</body>
-</html>`,
-    text: textContent,
-  });
 }
 
 // ---------------------------------------------------------------------------
-// Campaign & Test Email Sender (Resend API Engine with Verified Domain send.au-acadex.com)
+// Campaign & Bulk Mail Dispatcher
 // ---------------------------------------------------------------------------
 
 export async function sendEmail(
@@ -395,26 +293,31 @@ export async function sendEmail(
   isTestMail: boolean = false,
   fromOverride?: string | null
 ): Promise<void> {
-  const plainText = htmlToPlainText(html);
   const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
+  const privacyUrl = `${APP_URL}/privacy`;
   const fromHeader = getFromHeader(fromOverride);
 
-  // Automatically append Anti-Spam compliance footer if missing
+  // Compliant Anti-Spam Footer matching exact application APP_URL domain
   let finalHtml = html;
   if (!finalHtml.toLowerCase().includes("unsubscribe")) {
     finalHtml += `
-      <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#6b7280; font-family:sans-serif;">
-        <p style="margin:0 0 8px 0;">You received this email because you are subscribed to our mailing list.</p>
+      <div style="margin-top:40px; padding-top:20px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#6b7280; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; line-height:1.6;">
+        <p style="margin:0 0 4px 0; font-weight:600; color:#374151;">BulkyMailer</p>
         <p style="margin:0;">
-          <a href="${unsubscribeUrl}" style="color:#6366f1; text-decoration:underline;">Unsubscribe from this list</a>
+          <a href="${unsubscribeUrl}" style="color:#4f46e5; text-decoration:underline;">Unsubscribe</a>
+          <span style="margin:0 8px; color:#d1d5db;">|</span>
+          <a href="${privacyUrl}" style="color:#4f46e5; text-decoration:underline;">Privacy Policy</a>
         </p>
       </div>`;
   }
 
-  // 1. Resend API Engine (High deliverability bulk mailer)
+  const plainText = htmlToPlainText(finalHtml);
+
+  // 1. Resend Engine
   if (resend) {
     const { data, error } = await resend.emails.send({
       from: fromHeader,
+      replyTo: `support@${VERIFIED_DOMAIN}`,
       to,
       subject,
       html: finalHtml,
@@ -422,6 +325,8 @@ export async function sendEmail(
       headers: {
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
+        "X-Entity-Ref-ID": `${Date.now()}`,
       },
     });
 
@@ -432,20 +337,8 @@ export async function sendEmail(
     return;
   }
 
-  // 2. Nodemailer Fallback (when RESEND_API_KEY is omitted)
-  const replyTo = process.env.SMTP_USER || "noreply@send.au-acadex.com";
-
-  const headers: Record<string, string> = {
-    "X-Auto-Response-Suppress": "OOF, AutoReply",
-    "List-Unsubscribe": `<${unsubscribeUrl}>`,
-    "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
-    "X-Report-Abuse-To": replyTo,
-  };
-
-  if (!isTestMail) {
-    headers["Precedence"] = "bulk";
-  }
-
+  // 2. Nodemailer Fallback
+  const replyTo = `support@${VERIFIED_DOMAIN}`;
   await transporter.sendMail({
     from: fromHeader,
     to,
@@ -453,7 +346,11 @@ export async function sendEmail(
     subject,
     html: finalHtml,
     text: plainText,
-    headers,
+    headers: {
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
+    },
   });
 }
 
@@ -476,25 +373,31 @@ export async function sendBulkEmailWithResend(
 
   const batchPayload = emails.map((item) => {
     const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(item.to)}`;
+    const privacyUrl = `${APP_URL}/privacy`;
     let finalHtml = item.html;
     if (!finalHtml.toLowerCase().includes("unsubscribe")) {
       finalHtml += `
-        <div style="margin-top:32px; padding-top:16px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#6b7280; font-family:sans-serif;">
-          <p style="margin:0 0 8px 0;">You received this email because you are subscribed to our mailing list.</p>
+        <div style="margin-top:40px; padding-top:20px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#6b7280; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; line-height:1.6;">
+          <p style="margin:0 0 4px 0; font-weight:600; color:#374151;">BulkyMailer</p>
           <p style="margin:0;">
-            <a href="${unsubscribeUrl}" style="color:#6366f1; text-decoration:underline;">Unsubscribe from this list</a>
+            <a href="${unsubscribeUrl}" style="color:#4f46e5; text-decoration:underline;">Unsubscribe</a>
+            <span style="margin:0 8px; color:#d1d5db;">|</span>
+            <a href="${privacyUrl}" style="color:#4f46e5; text-decoration:underline;">Privacy Policy</a>
           </p>
         </div>`;
     }
 
     return {
       from: fromHeader,
+      replyTo: `support@${VERIFIED_DOMAIN}`,
       to: item.to,
       subject: item.subject,
       html: finalHtml,
       text: htmlToPlainText(finalHtml),
       headers: {
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
       },
     };
   });
