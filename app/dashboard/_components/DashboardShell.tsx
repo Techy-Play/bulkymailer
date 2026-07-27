@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Users, FileText, BarChart3, Settings, User,
-  LogOut, Mail, Menu, X, ChevronDown, Bell, Zap, PanelLeft, ChevronRight, Send,
+  LogOut, Menu, X, ChevronDown, Bell, Zap, PanelLeft, ChevronRight, Send,
 } from "lucide-react";
 import { TopProgressBar } from '@/components/ui/top-progress-bar';
 
@@ -106,17 +106,9 @@ function SidebarLayout({ children, user, orgName, orgLogoUrl }: Omit<ShellProps,
         collapsed ? "w-16" : "w-60"
       }`}
     >
-      {/* Logo */}
+      {/* Logo Image Only */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-200 ${collapsed ? "justify-center" : ""}`}>
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shrink-0">
-          <Mail className="w-4 h-4 text-white" />
-        </div>
-        {!collapsed && (
-          <div className="min-w-0">
-            <p className="font-bold text-[#111827] text-sm truncate">BulkyMailer</p>
-            {orgName && <p className="text-[10px] text-[#6B7280] truncate">{orgName}</p>}
-          </div>
-        )}
+        <img src="/logo.png" alt="BulkyMailer" className="h-9 w-auto object-contain shrink-0" />
         <button
           onClick={() => setCollapsed((c) => !c)}
           className={`ml-auto text-[#6B7280] hover:text-[#111827] transition shrink-0 ${collapsed ? "hidden" : ""}`}
@@ -198,12 +190,7 @@ function SidebarLayout({ children, user, orgName, orgLogoUrl }: Omit<ShellProps,
       <div className={`fixed inset-y-0 left-0 z-50 lg:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="h-full w-60 flex flex-col bg-white border-r border-gray-200">
           <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                <Mail className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-bold text-[#111827] text-sm">BulkyMailer</span>
-            </div>
+            <img src="/logo.png" alt="BulkyMailer" className="h-8 w-auto object-contain" />
             <button onClick={() => setMobileOpen(false)} className="text-[#6B7280] hover:text-[#111827]">
               <X className="w-5 h-5" />
             </button>
@@ -272,12 +259,9 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-30">
         <div className="max-w-screen-xl mx-auto px-4">
           <div className="flex items-center gap-4 h-14">
-            {/* Logo */}
-            <div className="flex items-center gap-2 shrink-0">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center">
-                <Mail className="w-3.5 h-3.5 text-white" />
-              </div>
-              <span className="font-bold text-[#111827] text-sm hidden sm:block">BulkyMailer</span>
+            {/* Logo Image Only */}
+            <div className="flex items-center shrink-0">
+              <img src="/logo.png" alt="BulkyMailer" className="h-8 w-auto object-contain" />
             </div>
 
             {/* Desktop nav */}

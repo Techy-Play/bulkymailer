@@ -30,20 +30,17 @@ export async function POST(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-    const { subject, campaignName, templateId, contactListId, senderProfileId } = await req.json();
-
-    if (!subject || !contactListId) {
-      return NextResponse.json({ error: "Missing required fields: subject and contactListId" }, { status: 400 });
-    }
+    const { subject, campaignName, templateId, contactListId, senderProfileId, htmlSnapshot } = await req.json();
 
     const campaign = await db.campaign.create({
       data: {
         userId,
-        subject,
-        campaignName: campaignName || subject,
+        subject: subject || campaignName || "Untitled Campaign",
+        campaignName: campaignName || subject || "Untitled Campaign",
         templateId: templateId || null,
-        contactListId,
+        contactListId: contactListId || null,
         senderProfileId: senderProfileId || null,
+        htmlSnapshot: htmlSnapshot || null,
         status: CampaignStatus.DRAFT
       }
     });

@@ -43,6 +43,21 @@ enum ContactRange {
   ABOVE_50K
 }
 
+enum EventType {
+  SENT
+  DELIVERED
+  OPENED
+  CLICKED
+  BOUNCED
+  COMPLAINED
+  UNSUBSCRIBED
+}
+
+enum BounceType {
+  HARD
+  SOFT
+}
+
 // ---------------------------------------------------------------------------
 // Organization — multi-user org model
 // ---------------------------------------------------------------------------
@@ -297,7 +312,13 @@ model Campaign {
   successfulRecipients Int            @default(0)
   failedRecipients     Int            @default(0)
   openedCount          Int            @default(0)
+  uniqueOpens          Int            @default(0)
   clickedCount         Int            @default(0)
+  uniqueClicks         Int            @default(0)
+  hardBounces          Int            @default(0)
+  softBounces          Int            @default(0)
+  complaints           Int            @default(0)
+  unsubscribes         Int            @default(0)
   
   status               CampaignStatus @default(DRAFT)
   
@@ -305,4 +326,33 @@ model Campaign {
   completedAt          DateTime?
   createdAt            DateTime       @default(now())
   updatedAt            DateTime       @updatedAt
+
+  events               CampaignEvent[]
+}
+
+// ---------------------------------------------------------------------------
+// Campaign Event Log (Real-time Webhook Events & Granular Tracking)
+// ---------------------------------------------------------------------------
+
+model CampaignEvent {
+  id          String     @id @default(cuid())
+  campaignId  String
+  campaign    Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  
+  recipient   String
+  eventType   EventType
+  
+  bounceType  BounceType?
+  bounceReason String?
+  linkUrl     String?
+  linkTag     String?    // Button, Image, Footer, Hero, Logo
+  
+  device      String?    // Desktop, Mobile, Tablet
+  emailClient String?    // Gmail, Outlook, Apple Mail, Yahoo, Other
+  country     String?
+  city        String?
+  ipAddress   String?
+  userAgent   String?
+  
+  createdAt   DateTime   @default(now())
 }

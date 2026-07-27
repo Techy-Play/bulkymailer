@@ -1,47 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Mail, Menu, X, User, LogOut } from "lucide-react";
+import { User, LogOut, Menu, X } from "lucide-react";
+
+interface NavbarUser {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  role: string;
+}
 
 const NAV_LINKS = [
-  { name: "Features", href: "/features" },
-  { name: "Solutions", href: "/integrations" },
-  { name: "Pricing", href: "/pricing" },
-  { name: "Resources", href: "/docs" },
+  { name: "Features", href: "#features" },
+  { name: "Pricing", href: "#pricing" },
+  { name: "FAQ", href: "#faq" },
+  { name: "Docs", href: "/docs" },
 ];
 
 export function Navbar() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [user, setUser] = useState<{ firstName?: string; lastName?: string; email?: string } | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
   const pathname = usePathname();
   const router = useRouter();
+  const [user, setUser] = useState<NavbarUser | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 15) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
+  // Check user session
   const checkAuth = async () => {
     try {
-      const res = await fetch("/api/auth/me");
+      const res = await fetch("/api/auth/me", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.authenticated && data.user) {
-          setUser(data.user);
-        } else {
-          setUser(null);
-        }
+        setUser(data.user || null);
       } else {
         setUser(null);
       }
@@ -54,11 +47,25 @@ export function Navbar() {
 
   useEffect(() => {
     checkAuth();
-    window.addEventListener("auth-change", checkAuth);
-    return () => window.removeEventListener("auth-change", checkAuth);
+    const handleAuthChange = () => checkAuth();
+    window.addEventListener("auth-change", handleAuthChange);
+    return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  async function handleSignOut() {
+  // Handle navbar background styling on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const handleSignOut = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
@@ -66,9 +73,9 @@ export function Navbar() {
       router.push("/");
       router.refresh();
     } catch (err) {
-      console.error(err);
+      console.error("Logout failed:", err);
     }
-  }
+  };
 
   return (
     <header
@@ -80,17 +87,16 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          {/* Brand Logo */}
+          {/* Brand Logo Only (image already contains BulkyMailer text) */}
           <Link
             href="/"
-            className="flex items-center gap-2.5 group focus:outline-none"
+            className="flex items-center group focus:outline-none"
           >
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#111827] text-white font-bold text-sm shadow-xs group-hover:bg-indigo-600 transition-colors">
-              <Mail className="w-4 h-4" />
-            </div>
-            <span className="font-bold text-lg tracking-tight text-[#111827]">
-              BulkyMailer
-            </span>
+            <img
+              src="/logo.png"
+              alt="BulkyMailer"
+              className="h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
+            />
           </Link>
 
           {/* Desktop Navigation Links */}

@@ -27,7 +27,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return NextResponse.json({ error: "Campaign is already processing or sent" }, { status: 400 });
     }
     
-    if (!campaign.template) return NextResponse.json({ error: "Campaign template missing" }, { status: 400 });
     if (!campaign.contactList) return NextResponse.json({ error: "No contact list assigned to this campaign" }, { status: 400 });
 
     const contacts = campaign.contactList.contacts;
@@ -36,13 +35,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     }
 
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    const finalHtmlSnapshot = campaign.htmlSnapshot || campaign.template?.htmlContent || "";
+    if (!finalHtmlSnapshot) {
+      return NextResponse.json({ error: "Campaign email content is empty" }, { status: 400 });
+    }
 
-    // 2. Mark as QUEUED and take snapshot
+    // 2. Mark as QUEUED and preserve edited htmlSnapshot
     await db.campaign.update({
       where: { id: campaignId },
       data: {
         status: CampaignStatus.QUEUED,
-        htmlSnapshot: campaign.template.htmlContent,
+        htmlSnapshot: finalHtmlSnapshot,
         subjectSnapshot: campaign.subject,
         totalRecipients: contacts.length,
         startedAt: new Date()
@@ -57,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         let successful = 0;
         let failed = 0;
         
-        const htmlTemplate = campaign.template!.htmlContent;
+        const htmlTemplate = finalHtmlSnapshot;
         const subject = campaign.subject;
 
         for (const contact of contacts) {
@@ -80,7 +83,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               customFields: contact.customFields as any,
             });
 
-            // Send Email
+            // Send Email via Resend
             await sendEmail(contact.email, subject, personalizedHtml);
             successful++;
           } catch (err) {

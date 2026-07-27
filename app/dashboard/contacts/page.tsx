@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Users, Plus, Upload, Search, Edit2, Trash2, X, Check, ChevronDown,
   RefreshCw, FileText, AlertCircle, CheckCircle2, ArrowLeft,
-  MousePointerClick, ClipboardPaste, UserPlus
+  UserPlus, FileCheck, Sparkles
 } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
 
@@ -97,7 +97,7 @@ function CreateListModal({ onClose, onCreate }: {
   );
 }
 
-// ─── Import Modal ───────────────────────────────────────────────────────────
+// ─── Import Modal with Drag and Drop ────────────────────────────────────────
 
 function ImportModal({ listId, onClose, onImported }: {
   listId: string;
@@ -106,9 +106,38 @@ function ImportModal({ listId, onClose, onImported }: {
 }) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{ imported: number; duplicates: number } | null>(null);
   const [error, setError] = useState("");
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const droppedFile = e.dataTransfer.files[0];
+      const fn = droppedFile.name.toLowerCase();
+      if (fn.endsWith('.csv') || fn.endsWith('.xlsx') || fn.endsWith('.xls')) {
+        setFile(droppedFile);
+        setError("");
+      } else {
+        setError("Unsupported file format. Please upload a CSV or Excel (.xlsx) file.");
+      }
+    }
+  };
 
   async function handleImport() {
     if (!file) return;
@@ -118,12 +147,12 @@ function ImportModal({ listId, onClose, onImported }: {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("listId", listId);
-      const res = await fetch(`/api/contacts/lists/${listId}/import`, { method: "POST", body: fd });
+      const res = await fetch(`/api/contacts/import`, { method: "POST", body: fd });
       const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
+      if (!res.ok) { setError(data.error || "Import failed"); return; }
       setResult(data);
     } catch {
-      setError("Import failed. Try again.");
+      setError("Import failed. Please check your network connection.");
     } finally {
       setLoading(false);
     }
@@ -136,16 +165,16 @@ function ImportModal({ listId, onClose, onImported }: {
           <div className="w-14 h-14 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 className="w-8 h-8 text-emerald-600" />
           </div>
-          <h2 className="text-xl font-bold text-[#111827] mb-1">Import Complete!</h2>
+          <h2 className="text-xl font-bold text-[#111827] mb-1">Import Successful!</h2>
           <p className="text-[#6B7280] text-sm">
-            <span className="font-bold text-emerald-600">{result.imported}</span> contacts imported
+            <span className="font-bold text-emerald-600">{result.imported}</span> contacts added to your list
             {result.duplicates > 0 && (
-              <>, <span className="font-bold text-amber-600">{result.duplicates}</span> skipped</>
+              <>, <span className="font-bold text-amber-600">{result.duplicates}</span> duplicates updated/skipped</>
             )}
           </p>
           <button onClick={() => { onImported(); onClose(); }}
             className="mt-6 w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
-            View Contacts →
+            View & Edit Contacts →
           </button>
         </div>
       </div>
@@ -156,34 +185,55 @@ function ImportModal({ listId, onClose, onImported }: {
     <div className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-md shadow-2xl">
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
-          <h2 className="font-bold text-[#111827]">Import Contacts (CSV)</h2>
+          <h2 className="font-bold text-[#111827]">Import Contacts (CSV / Excel)</h2>
           <button onClick={onClose} className="text-[#6B7280] hover:text-[#111827] transition"><X className="w-5 h-5" /></button>
         </div>
         <div className="p-5 space-y-4">
           {error && (
             <div className="p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2">
               <AlertCircle className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
-              <p className="text-sm text-red-700">{error}</p>
+              <p className="text-xs font-medium text-red-700">{error}</p>
             </div>
           )}
 
-          {/* File drop zone */}
+          {/* Interactive Drag & Drop File Upload Zone */}
           <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
             onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition ${
-              file ? "border-indigo-400 bg-indigo-50" : "border-gray-200 hover:border-gray-300 bg-gray-50"
+            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
+              isDragging
+                ? "border-indigo-600 bg-indigo-50/80 scale-[1.01]"
+                : file
+                ? "border-emerald-400 bg-emerald-50/50"
+                : "border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
             }`}
           >
-            <input ref={fileRef} type="file" accept=".csv" className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
-            <Upload className="w-8 h-8 text-[#6B7280] mx-auto mb-2" />
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              className="hidden"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
             {file ? (
-              <p className="text-sm font-semibold text-indigo-700">{file.name}</p>
+              <div className="space-y-2">
+                <FileCheck className="w-10 h-10 text-emerald-600 mx-auto" />
+                <p className="text-sm font-bold text-emerald-950">{file.name}</p>
+                <p className="text-xs text-emerald-700">{(file.size / 1024).toFixed(1)} KB — Ready to import</p>
+              </div>
             ) : (
-              <>
-                <p className="text-sm text-[#6B7280]">Click to upload CSV file</p>
-                <p className="text-xs text-gray-400 mt-1">Must have an <code className="text-indigo-600 bg-indigo-50 px-1 py-0.5 rounded">email</code> column</p>
-              </>
+              <div className="space-y-2">
+                <Upload className={`w-10 h-10 mx-auto transition ${isDragging ? "text-indigo-600 animate-bounce" : "text-gray-400"}`} />
+                <p className="text-sm font-bold text-[#111827]">
+                  {isDragging ? "Drop your CSV file here" : "Drag & drop CSV or Excel file"}
+                </p>
+                <p className="text-xs text-[#6B7280]">or click to browse from computer</p>
+                <p className="text-[11px] text-gray-400 pt-2">
+                  Must include an <code className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono">email</code> column
+                </p>
+              </div>
             )}
           </div>
 
@@ -194,7 +244,7 @@ function ImportModal({ listId, onClose, onImported }: {
             </button>
             <LoadingButton onClick={handleImport} loading={loading} disabled={!file}
               className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition shadow-sm">
-              Import
+              Import Contacts →
             </LoadingButton>
           </div>
         </div>
@@ -351,7 +401,6 @@ function ContactTable({ listId, listName, onAddContact, onImportCSV }: { listId:
 
   useEffect(() => { fetchContacts(); }, [fetchContacts]);
 
-  // Expose fetchContacts for refetching from parent when modal closes
   useEffect(() => {
     const handleRefresh = () => fetchContacts();
     window.addEventListener(`refresh-list-${listId}`, handleRefresh);
@@ -399,8 +448,8 @@ function ContactTable({ listId, listName, onAddContact, onImportCSV }: { listId:
                 <Upload className="w-6 h-6" />
               </div>
               <h4 className="font-semibold text-[#111827]">Import Contacts</h4>
-              <p className="text-xs text-[#6B7280] mt-1 mb-4">from a CSV</p>
-              <span className="text-xs font-semibold text-indigo-600">Import</span>
+              <p className="text-xs text-[#6B7280] mt-1 mb-4">Drag & drop CSV or Excel</p>
+              <span className="text-xs font-semibold text-indigo-600">Import File</span>
             </div>
           </div>
           <div className="mt-8 text-sm text-[#6B7280] cursor-pointer hover:text-[#111827] transition" onClick={() => window.history.back()}>
@@ -426,7 +475,7 @@ function ContactTable({ listId, listName, onAddContact, onImportCSV }: { listId:
             + Add Contact
           </button>
           <button onClick={onImportCSV} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm rounded-xl shadow-sm transition">
-            Import
+            Import CSV
           </button>
         </div>
       </div>
@@ -516,7 +565,7 @@ export default function ContactsPage() {
 
   function triggerListRefresh(id: string) {
     window.dispatchEvent(new Event(`refresh-list-${id}`));
-    fetchLists(); // Also refresh the lists counts
+    fetchLists();
   }
 
   return (
