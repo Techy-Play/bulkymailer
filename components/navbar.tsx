@@ -1,37 +1,35 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, LogOut, Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut } from "lucide-react";
 
-interface NavbarUser {
+interface UserSession {
   id: string;
   email: string;
   firstName: string;
   lastName: string;
-  role: string;
 }
 
 const NAV_LINKS = [
-  { name: "Features", href: "#features" },
-  { name: "Pricing", href: "#pricing" },
-  { name: "FAQ", href: "#faq" },
-  { name: "Docs", href: "/docs" },
+  { name: "Features", href: "/#features" },
+  { name: "Templates", href: "/#templates" },
+  { name: "Pricing", href: "/pricing" },
+  { name: "Documentation", href: "/docs" },
 ];
 
 export function Navbar() {
-  const pathname = usePathname();
-  const router = useRouter();
-  const [user, setUser] = useState<NavbarUser | null>(null);
-  const [loadingUser, setLoadingUser] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<UserSession | null>(null);
+  const [loadingUser, setLoadingUser] = useState(true);
+  const pathname = usePathname();
+  const router = useRouter();
 
-  // Check user session
-  const checkAuth = async () => {
+  const fetchSession = async () => {
     try {
-      const res = await fetch("/api/auth/me", { cache: "no-store" });
+      const res = await fetch("/api/auth/me");
       if (res.ok) {
         const data = await res.json();
         setUser(data.user || null);
@@ -46,13 +44,13 @@ export function Navbar() {
   };
 
   useEffect(() => {
-    checkAuth();
-    const handleAuthChange = () => checkAuth();
+    fetchSession();
+
+    const handleAuthChange = () => fetchSession();
     window.addEventListener("auth-change", handleAuthChange);
     return () => window.removeEventListener("auth-change", handleAuthChange);
   }, []);
 
-  // Handle navbar background styling on scroll
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 20) {
@@ -61,6 +59,7 @@ export function Navbar() {
         setIsScrolled(false);
       }
     };
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -70,7 +69,7 @@ export function Navbar() {
       await fetch("/api/auth/logout", { method: "POST" });
       setUser(null);
       window.dispatchEvent(new Event("auth-change"));
-      router.push("/");
+      router.push("/login");
       router.refresh();
     } catch (err) {
       console.error("Logout failed:", err);
@@ -87,7 +86,7 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          {/* Brand Logo Only (image already contains BulkyMailer text) */}
+          {/* Brand Logo Only with Explicit Dimensions for Lighthouse 100/100 */}
           <Link
             href="/"
             className="flex items-center group focus:outline-none"
@@ -95,6 +94,8 @@ export function Navbar() {
             <img
               src="/logo.png"
               alt="BulkyMailer"
+              width={180}
+              height={36}
               className="h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
             />
           </Link>
@@ -124,7 +125,6 @@ export function Navbar() {
             {loadingUser ? (
               <div className="w-20 h-9 bg-gray-100 rounded-lg animate-pulse" />
             ) : user ? (
-              // Logged-in State Navigation Actions (Profile & Sign Out ONLY)
               <>
                 <Link
                   href="/dashboard/profile"
@@ -142,7 +142,6 @@ export function Navbar() {
                 </button>
               </>
             ) : (
-              // Guest State Navigation Actions
               <>
                 <Link
                   href="/login"

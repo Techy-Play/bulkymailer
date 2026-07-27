@@ -22,13 +22,10 @@ export default async function DashboardLayout({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
-        profileImageUrl: user.profileImageUrl ?? null,
+        role: user.role,
         emailsSentThisMonth: user.emailsSentThisMonth,
-        subscriptionType: user.subscriptionType,
-        navLayout: (user.navLayout as "sidebar" | "topnav") ?? "sidebar",
       }}
-      orgName={user.organization?.name ?? null}
-      orgLogoUrl={user.organization?.logoUrl ?? null}
+      orgName={user.organization?.name ?? undefined}
     >
       {children}
     </DashboardShell>

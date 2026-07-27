@@ -1,15 +1,40 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard, Users, FileText, BarChart3, Settings, User,
-  LogOut, Menu, X, ChevronDown, Bell, Zap, PanelLeft, ChevronRight, Send,
+  LayoutDashboard,
+  Send,
+  Users,
+  FileText,
+  BarChart3,
+  User,
+  Settings,
+  LogOut,
+  ChevronRight,
+  PanelLeft,
+  Zap,
+  Menu,
+  X,
+  Bell,
+  ChevronDown,
 } from "lucide-react";
-import { TopProgressBar } from '@/components/ui/top-progress-bar';
+import { TopProgressBar } from "@/components/ui/top-progress-bar";
 
-const FREE_TIER_LIMIT = 100;
+interface ShellProps {
+  children: React.ReactNode;
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    role: string;
+    emailsSentThisMonth: number;
+  };
+  orgName?: string;
+  navLayout?: "sidebar" | "topnav";
+}
 
 const NAV_ITEMS = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
@@ -18,44 +43,16 @@ const NAV_ITEMS = [
   { label: "Templates", href: "/dashboard/templates", icon: FileText },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Profile", href: "/dashboard/profile", icon: User },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-interface UserInfo {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  profileImageUrl: string | null;
-  emailsSentThisMonth: number;
-  subscriptionType: string;
-  navLayout: "sidebar" | "topnav";
-}
+const FREE_TIER_LIMIT = 100;
 
-interface ShellProps {
-  children: React.ReactNode;
-  navLayout: "sidebar" | "topnav";
-  user: UserInfo;
-  orgName: string | null;
-  orgLogoUrl: string | null;
-}
-
-function Avatar({ user, size = 32 }: { user: UserInfo; size?: number }) {
-  const initials = `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
-  if (user.profileImageUrl) {
-    return (
-      <img
-        src={user.profileImageUrl}
-        alt={user.firstName}
-        className="rounded-full object-cover bg-gray-100 border border-gray-200"
-        style={{ width: size, height: size }}
-      />
-    );
-  }
+function Avatar({ user, size = 36 }: { user: ShellProps["user"]; size?: number }) {
+  const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "U";
   return (
     <div
-      className="rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-white font-bold border border-indigo-300"
-      style={{ width: size, height: size, fontSize: size * 0.35 }}
+      style={{ width: size, height: size }}
+      className="rounded-full bg-indigo-600 text-white font-bold flex items-center justify-center text-xs shrink-0 shadow-2xs"
     >
       {initials}
     </div>
@@ -64,38 +61,39 @@ function Avatar({ user, size = 32 }: { user: UserInfo; size?: number }) {
 
 function UsageMeter({ used, limit }: { used: number; limit: number }) {
   const pct = Math.min(100, Math.round((used / limit) * 100));
-  const color =
-    pct >= 90 ? "bg-red-500" : pct >= 70 ? "bg-amber-500" : "bg-indigo-600";
   return (
-    <div>
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs text-[#6B7280]">Emails Sent</span>
-        <span className="text-xs font-semibold text-[#111827]">
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center text-xs">
+        <span className="text-[#6B7280] font-medium flex items-center gap-1">
+          <Zap className="w-3 h-3 text-indigo-600" />
+          Monthly Limit
+        </span>
+        <span className="font-semibold text-[#111827]">
           {used} / {limit}
         </span>
       </div>
       <div className="h-1.5 bg-gray-200 rounded-full overflow-hidden">
         <div
-          className={`h-full ${color} rounded-full transition-all`}
+          className="h-full bg-indigo-600 rounded-full transition-all duration-500"
           style={{ width: `${pct}%` }}
         />
       </div>
-      <p className="text-[10px] text-[#6B7280] mt-0.5">{limit - used} remaining</p>
+      <p className="text-[10px] text-[#6B7280]">{limit - used} emails remaining this month</p>
     </div>
   );
 }
 
 function FreeBadge() {
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-600 text-white uppercase tracking-wide">
-      <Zap className="w-2.5 h-2.5" /> Free
+    <span className="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full">
+      Free Plan
     </span>
   );
 }
 
-// ─── Sidebar layout ────────────────────────────────────────────────────────
+// ─── Sidebar layout ─────────────────────────────────────────────────────────
 
-function SidebarLayout({ children, user, orgName, orgLogoUrl }: Omit<ShellProps, "navLayout">) {
+function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -106,9 +104,15 @@ function SidebarLayout({ children, user, orgName, orgLogoUrl }: Omit<ShellProps,
         collapsed ? "w-16" : "w-60"
       }`}
     >
-      {/* Logo Image Only */}
+      {/* Logo Image Only with Explicit Dimensions */}
       <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-200 ${collapsed ? "justify-center" : ""}`}>
-        <img src="/logo.png" alt="BulkyMailer" className="h-9 w-auto object-contain shrink-0" />
+        <img
+          src="/logo.png"
+          alt="BulkyMailer"
+          width={180}
+          height={36}
+          className="h-9 w-auto object-contain shrink-0"
+        />
         <button
           onClick={() => setCollapsed((c) => !c)}
           className={`ml-auto text-[#6B7280] hover:text-[#111827] transition shrink-0 ${collapsed ? "hidden" : ""}`}
@@ -190,7 +194,13 @@ function SidebarLayout({ children, user, orgName, orgLogoUrl }: Omit<ShellProps,
       <div className={`fixed inset-y-0 left-0 z-50 lg:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="h-full w-60 flex flex-col bg-white border-r border-gray-200">
           <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-            <img src="/logo.png" alt="BulkyMailer" className="h-8 w-auto object-contain" />
+            <img
+              src="/logo.png"
+              alt="BulkyMailer"
+              width={160}
+              height={32}
+              className="h-8 w-auto object-contain"
+            />
             <button onClick={() => setMobileOpen(false)} className="text-[#6B7280] hover:text-[#111827]">
               <X className="w-5 h-5" />
             </button>
@@ -261,7 +271,13 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
           <div className="flex items-center gap-4 h-14">
             {/* Logo Image Only */}
             <div className="flex items-center shrink-0">
-              <img src="/logo.png" alt="BulkyMailer" className="h-8 w-auto object-contain" />
+              <img
+                src="/logo.png"
+                alt="BulkyMailer"
+                width={160}
+                height={32}
+                className="h-8 w-auto object-contain"
+              />
             </div>
 
             {/* Desktop nav */}
@@ -281,7 +297,6 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
             </nav>
 
             <div className="flex items-center gap-2 ml-auto">
-              {/* Usage pill */}
               <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-gray-50 border border-gray-200">
                 <Zap className="w-3 h-3 text-indigo-600" />
                 <span className="text-xs font-semibold text-[#111827]">
@@ -290,7 +305,6 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
                 <span className="text-xs text-[#6B7280]">emails</span>
               </div>
               <FreeBadge />
-              {/* Profile dropdown */}
               <div className="relative">
                 <button onClick={() => setProfileOpen((o) => !o)}
                   className="flex items-center gap-2">
@@ -316,13 +330,12 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
                   </div>
                 )}
               </div>
-              <button className="md:hidden text-[#6B7280] hover:text-[#111827]" onClick={() => setMobileOpen((o) => !o)}>
+              <button className="md:hidden text-[#6B7280]" onClick={() => setMobileOpen((o) => !o)}>
                 {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
               </button>
             </div>
           </div>
 
-          {/* Mobile nav */}
           {mobileOpen && (
             <nav className="md:hidden py-3 border-t border-gray-200 flex flex-col gap-1">
               {NAV_ITEMS.map(({ label, href, icon: Icon }) => {
@@ -348,8 +361,6 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
     </div>
   );
 }
-
-// ─── Shell (picks layout) ────────────────────────────────────────────────────
 
 export default function DashboardShell(props: ShellProps) {
   return props.navLayout === "topnav" ? (
