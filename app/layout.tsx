@@ -66,7 +66,7 @@ export const metadata: Metadata = {
     google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
     yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
     other: {
-      "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "",
+      "msvalidate.01": "9586AB08549BEFDDCD1F3428040BFA1C",
     },
   },
   icons: {
@@ -193,6 +193,7 @@ export default function RootLayout({
       className={`${polarSans.variable} ${superXDisplay.variable} ${polarMono.variable} h-full antialiased scroll-smooth`}
     >
       <head>
+        <meta name="msvalidate.01" content="9586AB08549BEFDDCD1F3428040BFA1C" />
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/icon.png" type="image/png" sizes="512x512" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
