@@ -71,11 +71,13 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon.png", type: "image/png" },
+      { url: "/icon.png", sizes: "512x512", type: "image/png" },
+      { url: "/favicon.png", type: "image/png" },
+      { url: "/favicon.ico" },
     ],
     shortcut: ["/icon.png"],
     apple: [
-      { url: "/icon.png", type: "image/png" },
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
   },
   alternates: {
@@ -191,8 +193,9 @@ export default function RootLayout({
       className={`${polarSans.variable} ${superXDisplay.variable} ${polarMono.variable} h-full antialiased scroll-smooth`}
     >
       <head>
-        <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
-        <link rel="apple-touch-icon" href="/icon.png" />
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/icon.png" type="image/png" sizes="512x512" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftware) }}
