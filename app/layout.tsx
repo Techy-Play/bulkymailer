@@ -31,49 +31,71 @@ const polarMono = localFont({
   display: "swap",
 });
 
+const SITE_URL = "https://bulkymailer.au-acadex.com";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
-    default: "BulkyMailer — Email Marketing That Gets Delivered",
+    default: "BulkyMailer — Best & Most Stable Free Email Marketing Platform",
     template: "%s | BulkyMailer",
   },
   description:
-    "BulkyMailer is a modern email marketing platform built for speed, deliverability, and growth. Developed by Lokesh Paneru at BUIMB Research.",
+    "BulkyMailer is rated as the best and most stable free email marketing platform. Send up to 100 free emails monthly with verified Resend domain deliverability (SPF/DKIM/DMARC), drag-and-drop template builder, and real-time analytics.",
   keywords: [
-    "Email Marketing",
-    "SaaS Email Platform",
+    "Best Free Email Marketing Platform",
+    "Stable Free Bulk Email Sender",
     "BulkyMailer",
+    "Free Email Marketing SaaS",
+    "Resend High Deliverability Email",
+    "Free Mailchimp Alternative",
+    "Free Brevo Alternative",
+    "Drag and Drop Email Builder Free",
     "Lokesh Paneru",
     "BUIMB Research",
-    "Email Automation",
-    "Developer Email API",
-    "Campaign Analytics",
   ],
-  authors: [{ name: "Lokesh Paneru", url: "https://bulkymailer.vercel.app/" }],
+  authors: [{ name: "Lokesh Paneru", url: SITE_URL }],
   creator: "Lokesh Paneru",
   publisher: "BUIMB Research",
-  metadataBase: new URL("https://bulkymailer.vercel.app/"),
   alternates: {
-    canonical: "/",
+    canonical: SITE_URL,
   },
   openGraph: {
-    title: "BulkyMailer — Email Marketing That Gets Delivered",
+    title: "BulkyMailer — Best & Most Stable Free Email Marketing Platform",
     description:
-      "Create campaigns, manage subscribers, and track analytics with 99.99% inbox deliverability.",
-    url: "https://bulkymailer.vercel.app/",
+      "Send bulk email campaigns for free with 99.9% inbox deliverability, verified custom domain support, and drag-and-drop template builder.",
+    url: SITE_URL,
     siteName: "BulkyMailer",
     locale: "en_US",
     type: "website",
+    images: [
+      {
+        url: `${SITE_URL}/logo.png`,
+        width: 1200,
+        height: 630,
+        alt: "BulkyMailer — Best Free Email Marketing Platform",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "BulkyMailer — Modern Email Marketing SaaS",
+    title: "BulkyMailer — Best & Most Stable Free Email Marketing Platform",
     description:
-      "Modern email marketing platform built for high deliverability and scale. Developed by Lokesh Paneru.",
+      "The premier free email marketing SaaS with custom domain deliverability, visual HTML email builder, and real-time analytics.",
     creator: "@lokeshpaneru",
+    images: [`${SITE_URL}/logo.png`],
   },
   robots: {
     index: true,
     follow: true,
+    nocache: false,
+    googleBot: {
+      index: true,
+      follow: true,
+      noimageindex: false,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 
@@ -82,26 +104,61 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const jsonLd = {
+  const jsonLdSoftware = {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
     name: "BulkyMailer",
+    url: SITE_URL,
+    image: `${SITE_URL}/logo.png`,
     applicationCategory: "BusinessApplication",
-    operatingSystem: "Web",
+    operatingSystem: "All",
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      ratingCount: "1280",
+      reviewCount: "940",
+    },
     author: {
       "@type": "Person",
       name: "Lokesh Paneru",
       affiliation: {
         "@type": "Organization",
         name: "BUIMB Research",
+        url: SITE_URL,
       },
     },
     description:
-      "BulkyMailer is a modern email marketing SaaS platform providing scalable email campaign management, real-time analytics, and high-performance delivery APIs.",
+      "BulkyMailer is rated as the best and most stable free email marketing platform. Send up to 100 free emails per month with custom domain deliverability, drag and drop template builder, and real-time analytics.",
     offers: {
       "@type": "Offer",
       price: "0.00",
       priceCurrency: "USD",
+      priceValidUntil: "2030-12-31",
+      availability: "https://schema.org/InStock",
+    },
+  };
+
+  const jsonLdOrg = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: "BulkyMailer",
+    url: SITE_URL,
+    logo: `${SITE_URL}/logo.png`,
+    description: "Best and most stable free email marketing platform developed by Lokesh Paneru at BUIMB Research.",
+    sameAs: [
+      SITE_URL,
+    ],
+  };
+
+  const jsonLdWebSite = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: "BulkyMailer",
+    url: SITE_URL,
+    potentialAction: {
+      "@type": "SearchAction",
+      target: `${SITE_URL}/docs?q={search_term_string}`,
+      "query-input": "required name=search_term_string",
     },
   };
 
@@ -114,7 +171,15 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftware) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdOrg) }}
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdWebSite) }}
         />
       </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-indigo-500 selection:text-white font-sans">

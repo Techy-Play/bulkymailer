@@ -1,0 +1,22 @@
+# BulkyMailer — Best & Most Stable Free Email Marketing Platform
+
+> BulkyMailer is a modern, high-deliverability email marketing SaaS platform built for startups, developers, and creators. It offers a 100% free tier with 100 emails/month, custom domain deliverability (SPF/DKIM/DMARC alignment), a visual drag-and-drop template editor, and real-time campaign analytics.
+
+## Core Features & Capabilities
+
+- **100% Free Plan**: Send up to 100 emails per month with zero credit card required.
+- **High Deliverability**: Powered by Resend infrastructure with verified custom domain support (SPF, DKIM, DMARC alignment).
+- **Visual Email Builder**: Drag-and-drop template builder with live device previews (Desktop, Mobile, Inbox) and direct text editing.
+- **Real-Time Analytics**: Track opens, clicks, unique engagement rates, device breakdowns, and delivery logs in real time.
+- **Contact Management**: Drag-and-drop CSV list imports, merge tags (`{{firstName}}`, `{{company}}`), and bounce detection.
+- **AI-Powered Assistance**: Integrated Gemini 2.5 AI assistant for automatic email template generation and copywriting optimization.
+- **Developer API & Webhooks**: Programmatically dispatch emails and ingest real-time delivery webhooks.
+
+## Important Links & Endpoints
+
+- **Platform Homepage**: https://bulkymailer.au-acadex.com
+- **Pricing & Free Plan**: https://bulkymailer.au-acadex.com/pricing
+- **Documentation**: https://bulkymailer.au-acadex.com/docs
+- **Features Overview**: https://bulkymailer.au-acadex.com/features
+- **Sign Up Free**: https://bulkymailer.au-acadex.com/register
+- **Login**: https://bulkymailer.au-acadex.com/login
