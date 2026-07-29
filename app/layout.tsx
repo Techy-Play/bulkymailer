@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -33,6 +33,12 @@ const polarMono = localFont({
 
 const SITE_URL = "https://bulkymailer.au-acadex.com";
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#4f46e5",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
@@ -56,6 +62,22 @@ export const metadata: Metadata = {
   authors: [{ name: "Lokesh Paneru", url: SITE_URL }],
   creator: "Lokesh Paneru",
   publisher: "BUIMB Research",
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+    yandex: process.env.NEXT_PUBLIC_YANDEX_VERIFICATION,
+    other: {
+      "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION || "",
+    },
+  },
+  icons: {
+    icon: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+    shortcut: ["/icon.png"],
+    apple: [
+      { url: "/icon.png", type: "image/png" },
+    ],
+  },
   alternates: {
     canonical: SITE_URL,
   },
@@ -69,9 +91,9 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: `${SITE_URL}/logo.png`,
-        width: 1200,
-        height: 630,
+        url: `${SITE_URL}/icon.png`,
+        width: 512,
+        height: 512,
         alt: "BulkyMailer — Best Free Email Marketing Platform",
       },
     ],
@@ -82,7 +104,7 @@ export const metadata: Metadata = {
     description:
       "The premier free email marketing SaaS with custom domain deliverability, visual HTML email builder, and real-time analytics.",
     creator: "@lokeshpaneru",
-    images: [`${SITE_URL}/logo.png`],
+    images: [`${SITE_URL}/icon.png`],
   },
   robots: {
     index: true,
@@ -109,7 +131,7 @@ export default function RootLayout({
     "@type": "SoftwareApplication",
     name: "BulkyMailer",
     url: SITE_URL,
-    image: `${SITE_URL}/logo.png`,
+    image: `${SITE_URL}/icon.png`,
     applicationCategory: "BusinessApplication",
     operatingSystem: "All",
     aggregateRating: {
@@ -143,7 +165,7 @@ export default function RootLayout({
     "@type": "Organization",
     name: "BulkyMailer",
     url: SITE_URL,
-    logo: `${SITE_URL}/logo.png`,
+    logo: `${SITE_URL}/icon.png`,
     description: "Best and most stable free email marketing platform developed by Lokesh Paneru at BUIMB Research.",
     sameAs: [
       SITE_URL,
@@ -157,7 +179,7 @@ export default function RootLayout({
     url: SITE_URL,
     potentialAction: {
       "@type": "SearchAction",
-      target: `${SITE_URL}/docs?q={search_term_string}`,
+      target: `${SITE_URL}/#features?q={search_term_string}`,
       "query-input": "required name=search_term_string",
     },
   };
@@ -169,6 +191,8 @@ export default function RootLayout({
       className={`${polarSans.variable} ${superXDisplay.variable} ${polarMono.variable} h-full antialiased scroll-smooth`}
     >
       <head>
+        <link rel="icon" href="/icon.png" type="image/png" sizes="any" />
+        <link rel="apple-touch-icon" href="/icon.png" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLdSoftware) }}

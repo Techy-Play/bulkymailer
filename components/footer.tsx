@@ -26,11 +26,15 @@ export function Footer() {
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-4">
             <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-[#111827] text-white font-bold text-sm">
-                <Mail className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-lg tracking-tight text-[#111827]">
-                BulkyMailer
+              <img
+                src="/icon.png"
+                alt="BulkyMailer"
+                width={32}
+                height={32}
+                className="h-8 w-8 object-contain shrink-0"
+              />
+              <span className="font-extrabold text-lg tracking-tight text-[#111827]">
+                Bulky<span className="text-indigo-600">Mailer</span>
               </span>
             </Link>
             <p className="text-sm text-gray-500 leading-relaxed max-w-sm">
@@ -76,7 +80,6 @@ export function Footer() {
             <ul className="space-y-2 text-sm">
               <li><Link href="/features" className="hover:text-[#111827] transition-colors">Features</Link></li>
               <li><Link href="/pricing" className="hover:text-[#111827] transition-colors">Pricing</Link></li>
-              <li><Link href="/templates" className="hover:text-[#111827] transition-colors">Templates</Link></li>
               <li><Link href="/integrations" className="hover:text-[#111827] transition-colors">Integrations</Link></li>
             </ul>
           </div>
@@ -84,10 +87,9 @@ export function Footer() {
           {/* Links Column 2 */}
           <div className="space-y-3">
             <h3 className="text-xs font-bold text-[#111827] uppercase tracking-wider">
-              Resources
+              Company & Resources
             </h3>
             <ul className="space-y-2 text-sm">
-              <li><Link href="/docs" className="hover:text-[#111827] transition-colors">Documentation</Link></li>
               <li><Link href="/blog" className="hover:text-[#111827] transition-colors">Engineering Blog</Link></li>
               <li><Link href="/about" className="hover:text-[#111827] transition-colors">About Us</Link></li>
               <li><Link href="/contact" className="hover:text-[#111827] transition-colors">Contact Support</Link></li>

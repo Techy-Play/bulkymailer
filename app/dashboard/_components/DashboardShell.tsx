@@ -104,15 +104,22 @@ function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout"
         collapsed ? "w-16" : "w-60"
       }`}
     >
-      {/* Logo Image Only with Explicit Dimensions */}
-      <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-200 ${collapsed ? "justify-center" : ""}`}>
-        <img
-          src="/logo.png"
-          alt="BulkyMailer"
-          width={180}
-          height={36}
-          className="h-9 w-auto object-contain shrink-0"
-        />
+      {/* Brand Icon.png & Title */}
+      <div className={`flex items-center gap-2.5 px-4 py-5 border-b border-gray-200 ${collapsed ? "justify-center" : ""}`}>
+        <Link href="/dashboard" className="flex items-center gap-2.5 min-w-0">
+          <img
+            src="/icon.png"
+            alt="BulkyMailer"
+            width={32}
+            height={32}
+            className="h-8 w-8 object-contain shrink-0"
+          />
+          {!collapsed && (
+            <span className="font-extrabold text-lg tracking-tight text-[#111827] truncate">
+              Bulky<span className="text-indigo-600">Mailer</span>
+            </span>
+          )}
+        </Link>
         <button
           onClick={() => setCollapsed((c) => !c)}
           className={`ml-auto text-[#6B7280] hover:text-[#111827] transition shrink-0 ${collapsed ? "hidden" : ""}`}
@@ -194,13 +201,12 @@ function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout"
       <div className={`fixed inset-y-0 left-0 z-50 lg:hidden transition-transform duration-300 ${mobileOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="h-full w-60 flex flex-col bg-white border-r border-gray-200">
           <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
-            <img
-              src="/logo.png"
-              alt="BulkyMailer"
-              width={160}
-              height={32}
-              className="h-8 w-auto object-contain"
-            />
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <img src="/icon.png" alt="BulkyMailer" width={28} height={28} className="h-7 w-7 object-contain" />
+              <span className="font-extrabold text-base tracking-tight text-[#111827]">
+                Bulky<span className="text-indigo-600">Mailer</span>
+              </span>
+            </Link>
             <button onClick={() => setMobileOpen(false)} className="text-[#6B7280] hover:text-[#111827]">
               <X className="w-5 h-5" />
             </button>
@@ -271,13 +277,12 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
           <div className="flex items-center gap-4 h-14">
             {/* Logo Image Only */}
             <div className="flex items-center shrink-0">
-              <img
-                src="/logo.png"
-                alt="BulkyMailer"
-                width={160}
-                height={32}
-                className="h-8 w-auto object-contain"
-              />
+              <Link href="/dashboard" className="flex items-center gap-2">
+                <img src="/icon.png" alt="BulkyMailer" width={28} height={28} className="h-7 w-7 object-contain" />
+                <span className="font-extrabold text-base tracking-tight text-[#111827]">
+                  Bulky<span className="text-indigo-600">Mailer</span>
+                </span>
+              </Link>
             </div>
 
             {/* Desktop nav */}

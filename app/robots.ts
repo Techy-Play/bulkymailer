@@ -21,7 +21,6 @@ export default function robots(): MetadataRoute.Robots {
     '/#features',
     '/#templates',
     '/pricing',
-    '/docs',
     '/features',
     '/about',
     '/blog',
@@ -48,7 +47,6 @@ export default function robots(): MetadataRoute.Robots {
         allow: allowPaths,
         disallow: disallowPaths,
       },
-      // Explicitly optimize for all Generative Engine AI bots (ChatGPT, Perplexity, Claude, Gemini)
       ...aiBots.map((bot) => ({
         userAgent: bot,
         allow: allowPaths,

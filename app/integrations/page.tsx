@@ -1,21 +1,19 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight, Code2 } from "lucide-react";
-import { MagicCard } from "@/components/ui/magic-card";
 
 export const metadata: Metadata = {
-  title: "Integrations & Developer SDKs",
+  title: "Integrations & API",
   description:
-    "Connect BulkyMailer with your tech stack. Official SDKs for Next.js, Node.js, Python, Go, REST API, and SMTP Relay.",
+    "Connect BulkyMailer with your existing tech stack using pre-built webhooks and REST APIs.",
 };
 
 const INTEGRATIONS = [
-  { name: "Next.js / React", category: "Framework", desc: "Native App Router & Server Action integration." },
-  { name: "Node.js SDK", category: "Backend", desc: "Type-safe npm package with automatic retries." },
-  { name: "Python Package", category: "Data & Backend", desc: "Async Python library for Django, FastAPI, & Flask." },
-  { name: "Go SDK", category: "High Concurrency", desc: "Goroutine-safe client for ultra-fast throughput." },
-  { name: "PostgreSQL & Prisma", category: "Database", desc: "Sync contacts & event logs directly to your DB." },
-  { name: "SMTP Relay", category: "Legacy & Apps", desc: "Standard TLS 1.3 SMTP credentials for any software." },
+  { name: "Resend", desc: "High-deliverability email sending engine with verified custom domain support.", category: "Email Engine" },
+  { name: "Neon PostgreSQL", desc: "Serverless database storing contacts, lists, and event metrics.", category: "Database" },
+  { name: "Next.js App Router", desc: "Fast SSR landing pages and App Router API endpoints.", category: "Framework" },
+  { name: "Cloudinary", desc: "CDN image storage for email logos and banner media.", category: "Media CDN" },
+  { name: "Google Gemini 2.5", desc: "AI assistant for email template design and copywriting.", category: "AI Engine" },
 ];
 
 export default function IntegrationsPage() {
@@ -27,23 +25,20 @@ export default function IntegrationsPage() {
             Ecosystem & APIs
           </div>
           <h1 className="mt-4 text-4xl sm:text-5xl font-extrabold text-[#111827] tracking-tight">
-            Seamless Integrations & Developer SDKs
+            Integrate BulkyMailer with Your Stack
           </h1>
           <p className="mt-3 text-base sm:text-lg text-[#4B5563] max-w-2xl mx-auto">
-            Plug BulkyMailer into your existing web applications, databases, and continuous delivery pipelines in minutes.
+            Connect your website, database, and marketing automation tools seamlessly.
           </p>
         </div>
       </section>
 
       <section className="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {INTEGRATIONS.map((item) => (
-            <MagicCard
-              key={item.name}
-              mode="orb"
-              glowFrom="rgba(99, 102, 241, 0.2)"
-              glowTo="rgba(168, 85, 247, 0.2)"
-              className="p-6 flex flex-col justify-between"
+          {INTEGRATIONS.map((item, i) => (
+            <div
+              key={i}
+              className="p-6 bg-white border border-gray-200 rounded-2xl shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
             >
               <div>
                 <div className="flex items-center justify-between mb-4">
@@ -60,14 +55,14 @@ export default function IntegrationsPage() {
 
               <div className="mt-6 pt-4 border-t border-gray-100">
                 <Link
-                  href="/docs"
+                  href="/features"
                   className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
                 >
-                  View Setup Guide
+                  Explore Integration Features
                   <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </div>
-            </MagicCard>
+            </div>
           ))}
         </div>
       </section>

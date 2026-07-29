@@ -1,58 +1,53 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, CheckCircle2, Send, Play, LayoutDashboard } from "lucide-react";
-import KineticGrid from "@/components/ui/kinetic-grid";
+import { ArrowRight, LayoutDashboard, Sparkles, CheckCircle2, Send, Play } from "lucide-react";
 
-export function HeroSection() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+interface UserSession {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
 
-  const checkAuth = async () => {
-    try {
-      const res = await fetch("/api/auth/me");
-      if (res.ok) {
-        const data = await res.json();
-        setIsLoggedIn(data.authenticated && !!data.user);
-      } else {
-        setIsLoggedIn(false);
-      }
-    } catch {
-      setIsLoggedIn(false);
-    }
-  };
+export function Hero() {
+  const [user, setUser] = useState<UserSession | null>(null);
 
   useEffect(() => {
-    checkAuth();
-    window.addEventListener("auth-change", checkAuth);
-    return () => window.removeEventListener("auth-change", checkAuth);
+    fetch("/api/auth/me")
+      .then((res) => res.json())
+      .then((data) => setUser(data.user || null))
+      .catch(() => setUser(null));
   }, []);
 
   return (
-    <KineticGrid globalColor="light" className="min-h-0 py-12 lg:py-20">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className="pt-28 pb-16 md:pt-36 md:pb-24 border-b border-gray-200 bg-[#FAFAFA] text-[#111827] overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
           
-          {/* Left Column: Clear Typography & CTAs */}
+          {/* Left Column: Hero Content & Value Prop */}
           <div className="lg:col-span-6 space-y-6 text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold text-indigo-700">
-              <span className="w-1.5 h-1.5 rounded-full bg-indigo-600" />
-              BulkyMailer 2.0 Engine
+            
+            {/* Pill Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 border border-indigo-100 text-xs font-semibold text-indigo-700 shadow-2xs">
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Resend High Deliverability Infrastructure</span>
             </div>
 
-            <h1 className="text-4xl sm:text-6xl lg:text-6xl font-extrabold tracking-tight text-[#111827] leading-[1.1]">
-              Email Marketing <br className="hidden sm:inline" />
-              that actually gets <br className="hidden sm:inline" />
-              <span className="text-indigo-600">delivered.</span>
+            {/* Main Headline */}
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight text-[#111827] leading-[1.1]">
+              Email Marketing That Gets <span className="text-indigo-600">Delivered</span>.
             </h1>
 
-            <p className="text-lg sm:text-xl text-[#4B5563] max-w-xl leading-relaxed font-normal">
-              Create campaigns. Manage subscribers. Track analytics—all in one fast, developer-friendly platform.
+            {/* Subtitle */}
+            <p className="text-base sm:text-lg text-[#4B5563] max-w-xl leading-relaxed font-normal">
+              BulkyMailer gives you custom domain SPF/DKIM verification, a drag-and-drop template editor, and real-time open & click event tracking for high-volume email campaigns.
             </p>
 
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
-              {isLoggedIn ? (
+              {user ? (
                 <Link
                   href="/dashboard"
                   className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-all group"
@@ -71,11 +66,11 @@ export function HeroSection() {
                 </Link>
               )}
               <Link
-                href="/docs"
+                href="/pricing"
                 className="inline-flex items-center justify-center px-6 py-3.5 text-sm font-semibold text-[#374151] bg-white hover:bg-gray-50 border border-gray-200 rounded-lg shadow-2xs transition-all"
               >
                 <Play className="w-3.5 h-3.5 mr-2 text-gray-500 fill-current" />
-                Live Demo & API
+                View Plans & Pricing
               </Link>
             </div>
 
@@ -179,6 +174,10 @@ export function HeroSection() {
 
         </div>
       </div>
-    </KineticGrid>
+    </section>
   );
+}
+
+export function HeroSection() {
+  return <Hero />;
 }

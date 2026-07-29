@@ -16,7 +16,6 @@ const NAV_LINKS = [
   { name: "Features", href: "/#features" },
   { name: "Templates", href: "/#templates" },
   { name: "Pricing", href: "/pricing" },
-  { name: "Documentation", href: "/docs" },
 ];
 
 export function Navbar() {
@@ -86,18 +85,21 @@ export function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
-          {/* Brand Logo Only with Explicit Dimensions for Lighthouse 100/100 */}
+          {/* Brand Logo & Icon.png */}
           <Link
             href="/"
-            className="flex items-center group focus:outline-none"
+            className="flex items-center gap-2.5 group focus:outline-none"
           >
             <img
-              src="/logo.png"
+              src="/icon.png"
               alt="BulkyMailer"
-              width={180}
+              width={36}
               height={36}
-              className="h-9 w-auto object-contain shrink-0 group-hover:scale-105 transition-transform"
+              className="h-9 w-9 object-contain shrink-0 group-hover:scale-105 transition-transform"
             />
+            <span className="font-extrabold text-xl tracking-tight text-[#111827]">
+              Bulky<span className="text-indigo-600">Mailer</span>
+            </span>
           </Link>
 
           {/* Desktop Navigation Links */}
