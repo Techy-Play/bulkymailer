@@ -32,6 +32,7 @@ export default function TemplatesPage() {
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+  const [confirmInput, setConfirmInput] = useState('')
   const [openMenuId, setOpenMenuId] = useState<string | null>(null)
   const [previewDevice, setPreviewDevice] = useState<'desktop' | 'mobile'>('desktop')
 
@@ -155,7 +156,7 @@ export default function TemplatesPage() {
                   {duplicating === template.id ? 'Duplicating...' : 'Duplicate'}
                 </button>
                 {template.userId !== null && (
-                  <button onClick={() => { setConfirmDeleteId(template.id); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
+                  <button onClick={() => { setConfirmDeleteId(template.id); setConfirmInput(''); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
                 )}
               </div>
             )}
@@ -247,18 +248,54 @@ export default function TemplatesPage() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Modal */}
       {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111827]/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl border border-gray-200">
-            <h3 className="text-lg font-bold text-[#111827] mb-2">Delete Template</h3>
-            <p className="text-sm text-[#6B7280] mb-6">Are you sure you want to delete this template? This cannot be undone.</p>
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmDeleteId(null)} className="px-4 py-2 text-sm font-medium text-[#111827] bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl transition">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#111827]/40 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-xl border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-bold text-[#111827]">Delete Template</h3>
+              <button
+                onClick={() => { setConfirmDeleteId(null); setConfirmInput(''); }}
+                className="p-1 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <p className="text-xs text-[#6B7280] leading-relaxed">
+              This action cannot be undone. To permanently delete this template, please type <span className="font-bold text-red-600 font-mono bg-red-50 px-1.5 py-0.5 rounded border border-red-100">confirm</span> in the box below.
+            </p>
+
+            <div>
+              <label className="block text-[11px] font-bold text-[#6B7280] uppercase tracking-wide mb-1">
+                Confirmation *
+              </label>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder="Type 'confirm' to enable delete"
+                className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-red-500/30 focus:border-red-400 focus:outline-none transition font-mono"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => { setConfirmDeleteId(null); setConfirmInput(''); }}
+                className="px-4 py-2 text-xs font-semibold text-[#111827] bg-gray-50 border border-gray-200 hover:bg-gray-100 rounded-xl transition"
+              >
                 Cancel
               </button>
-              <button onClick={() => handleDelete(confirmDeleteId)} className="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-xl transition">
-                Delete
+              <button
+                disabled={confirmInput.trim().toLowerCase() !== 'confirm'}
+                onClick={() => {
+                  handleDelete(confirmDeleteId);
+                  setConfirmInput('');
+                }}
+                className="px-4 py-2 text-xs font-bold text-white bg-red-600 hover:bg-red-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-xl transition shadow-sm"
+              >
+                Delete Template
               </button>
             </div>
           </div>
