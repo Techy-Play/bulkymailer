@@ -64,7 +64,11 @@ STRICT DESIGN DIRECTIVES & RULES:
       userMessage += `\n\nFIELD ANSWERS:\n${JSON.stringify(fieldAnswers, null, 2)}`;
     }
     if (currentHtml) {
-      userMessage += `\n\nEXISTING HTML TEMPLATE:\n${currentHtml}`;
+      // Strip heavy base64 strings to prevent burning TPM tokens & hitting 429 rate limits
+      const sanitizedHtml = String(currentHtml)
+        .replace(/data:image\/[^;]+;base64,[^"']+/g, "https://placehold.co/600x300")
+        .slice(0, 10000);
+      userMessage += `\n\nEXISTING HTML TEMPLATE:\n${sanitizedHtml}`;
     }
 
     const systemInstruction = `You are BulkyMailer's AI Email Designer.
@@ -78,20 +82,21 @@ Return a JSON object with this exact schema:
   "brandScore": 96
 }`;
 
-    // Active, supported Gemini models
-    const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-lite",
-      "gemini-2.5-pro",
+    // Supported active AI models and versions
+    const endpointsToTry = [
+      { model: "gemini-2.0-flash-lite", version: "v1beta" },
+      { model: "gemini-2.5-flash", version: "v1beta" },
+      { model: "gemini-2.0-flash", version: "v1beta" },
+      { model: "gemini-2.5-pro", version: "v1beta" },
+      { model: "gemini-1.5-flash", version: "v1" },
     ];
 
     let responseData: any = null;
     let lastErrorText = "";
     let isRateLimited = false;
 
-    for (const modelName of modelsToTry) {
-      const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+    for (const target of endpointsToTry) {
+      const apiUrl = `https://generativelanguage.googleapis.com/${target.version}/models/${target.model}:generateContent?key=${apiKey}`;
       try {
         const res = await fetch(apiUrl, {
           method: "POST",
@@ -112,11 +117,11 @@ Return a JSON object with this exact schema:
           lastErrorText = await res.text();
           if (res.status === 429) {
             isRateLimited = true;
-            console.warn(`Gemini model ${modelName} rate limited (status 429)`);
-            // Brief pause before trying next fallback model
-            await new Promise((resolve) => setTimeout(resolve, 800));
+            console.warn(`AI model ${target.model} (${target.version}) rate limited (status 429)`);
+            // Brief backoff pause before attempting fallback endpoint
+            await new Promise((resolve) => setTimeout(resolve, 600));
           } else {
-            console.warn(`Gemini model ${modelName} returned status ${res.status}`);
+            console.warn(`AI model ${target.model} (${target.version}) returned status ${res.status}`);
           }
         }
       } catch (err: any) {
@@ -125,15 +130,15 @@ Return a JSON object with this exact schema:
     }
 
     if (!responseData) {
-      console.error("[gemini_api_error]", lastErrorText);
+      console.error("[ai_template_generate_error]", lastErrorText);
       if (isRateLimited) {
         return NextResponse.json(
-          { error: "Gemini AI rate limit / quota exceeded. Please wait a few seconds and try again." },
+          { error: "AI Assistant rate limit reached. Please wait a few seconds and try again." },
           { status: 429 }
         );
       }
       return NextResponse.json(
-        { error: "Failed to communicate with Gemini API. Please check your GEMINI_API_KEY." },
+        { error: "Failed to communicate with AI Assistant service. Please try again." },
         { status: 500 }
       );
     }
