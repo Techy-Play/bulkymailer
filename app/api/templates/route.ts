@@ -37,15 +37,19 @@ export async function POST(req: NextRequest) {
 
     const { name, category, htmlContent, description, previewText } = await req.json();
 
-    if (!name || !htmlContent) {
-      return NextResponse.json({ error: "Name and HTML content are required" }, { status: 400 });
+    if (!name) {
+      return NextResponse.json({ error: "Template name is required" }, { status: 400 });
     }
+
+    const defaultHtml = typeof htmlContent === "string" && htmlContent.trim()
+      ? htmlContent
+      : "<!DOCTYPE html><html><head></head><body style='font-family:sans-serif;padding:32px;background-color:#ffffff;'><div style='max-w:600px;margin:0 auto;'><h1 style='color:#111827;'>Welcome to Your Campaign</h1><p style='color:#374151;'>Start writing your email content here...</p></div></body></html>";
 
     const template = await db.template.create({
       data: {
         name,
         category: category || TemplateCategory.GENERAL,
-        htmlContent,
+        htmlContent: defaultHtml,
         description,
         previewText,
         userId

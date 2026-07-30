@@ -56,12 +56,15 @@ export default function NewTemplatePage() {
         body: JSON.stringify({
           name: 'Untitled Template',
           category: 'GENERAL',
-          htmlContent: ""
+          htmlContent: "<!DOCTYPE html><html><head></head><body style='font-family:sans-serif;padding:32px;background-color:#ffffff;'><div style='max-w:600px;margin:0 auto;'><h1 style='color:#111827;'>Welcome to Your Campaign</h1><p style='color:#374151;'>Start writing your email content...</p></div></body></html>"
         })
       })
       const data = await res.json()
-      if (data.template) {
+      if (res.ok && data.template) {
         router.push(`/dashboard/templates/${data.template.id}/edit`)
+      } else {
+        alert(data.error || 'Failed to create template')
+        setCreatingBlank(false)
       }
     } catch (e) {
       console.error(e)
