@@ -748,7 +748,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
                   <Sparkles className="w-5 h-5 fill-white" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-[#111827]">Gemini 2.5 AI Assistant</h3>
+                  <h3 className="font-bold text-base text-[#111827]">AI Assistant</h3>
                   <p className="text-xs text-[#6B7280]">AI Design Engine & Deliverability Optimizer</p>
                 </div>
               </div>
@@ -831,7 +831,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
               className="w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs font-bold rounded-2xl transition shadow-md flex items-center justify-center gap-2"
             >
               <Sparkles className="w-4 h-4 fill-white" />
-              {aiGenerating ? "Gemini 2.5 AI is Designing..." : "Execute AI Prompt →"}
+              {aiGenerating ? "AI is Designing..." : "Execute AI Prompt →"}
             </LoadingButton>
 
           </div>

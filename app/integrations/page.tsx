@@ -13,7 +13,7 @@ const INTEGRATIONS = [
   { name: "Neon PostgreSQL", desc: "Serverless database storing contacts, lists, and event metrics.", category: "Database" },
   { name: "Next.js App Router", desc: "Fast SSR landing pages and App Router API endpoints.", category: "Framework" },
   { name: "Cloudinary", desc: "CDN image storage for email logos and banner media.", category: "Media CDN" },
-  { name: "Google Gemini 2.5", desc: "AI assistant for email template design and copywriting.", category: "AI Engine" },
+  { name: "AI Design Engine", desc: "AI assistant for email template design and copywriting.", category: "AI Engine" },
 ];
 
 export default function IntegrationsPage() {

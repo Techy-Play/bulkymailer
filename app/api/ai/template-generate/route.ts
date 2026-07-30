@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "GEMINI_API_KEY is not set in environment variables. Please add GEMINI_API_KEY to your .env file." },
+        { error: "GEMINI_API_KEY is not set in environment variables. Please add GEMINI_API_KEY to your deployment environment." },
         { status: 400 }
       );
     }
@@ -67,21 +67,28 @@ STRICT DESIGN DIRECTIVES & RULES:
       userMessage += `\n\nEXISTING HTML TEMPLATE:\n${currentHtml}`;
     }
 
-    const systemInstruction = `You are BulkyMailer's Gemini 2.5 AI Email Designer.
+    const systemInstruction = `You are BulkyMailer's AI Email Designer.
 Return a JSON object with this exact schema:
 {
-  "missingFields": [], // Array of missing fields if any, else []
-  "html": "<!DOCTYPE html>...", // Complete valid email HTML
-  "changes": ["✓ Applied requested styling", "✓ Updated CTA button"], // List of changes made
-  "suggestions": ["Add countdown timer", "Include social links"], // Recommended next steps
-  "spamRisk": "Low" | "Medium" | "High", // Spam risk score
-  "brandScore": 96 // Estimated brand alignment score (0-100)
+  "missingFields": [],
+  "html": "<!DOCTYPE html>...",
+  "changes": ["✓ Applied requested styling", "✓ Updated CTA button"],
+  "suggestions": ["Add countdown timer", "Include social links"],
+  "spamRisk": "Low" | "Medium" | "High",
+  "brandScore": 96
 }`;
 
-    // Try Google AI Studio Gemini models in order of priority
-    const modelsToTry = ["gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+    // Active, supported Gemini models
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-lite",
+      "gemini-2.5-pro",
+    ];
+
     let responseData: any = null;
     let lastErrorText = "";
+    let isRateLimited = false;
 
     for (const modelName of modelsToTry) {
       const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
@@ -103,7 +110,14 @@ Return a JSON object with this exact schema:
           break;
         } else {
           lastErrorText = await res.text();
-          console.warn(`Gemini model ${modelName} returned status ${res.status}`);
+          if (res.status === 429) {
+            isRateLimited = true;
+            console.warn(`Gemini model ${modelName} rate limited (status 429)`);
+            // Brief pause before trying next fallback model
+            await new Promise((resolve) => setTimeout(resolve, 800));
+          } else {
+            console.warn(`Gemini model ${modelName} returned status ${res.status}`);
+          }
         }
       } catch (err: any) {
         lastErrorText = err.message || "Network error";
@@ -112,8 +126,14 @@ Return a JSON object with this exact schema:
 
     if (!responseData) {
       console.error("[gemini_api_error]", lastErrorText);
+      if (isRateLimited) {
+        return NextResponse.json(
+          { error: "Gemini AI rate limit / quota exceeded. Please wait a few seconds and try again." },
+          { status: 429 }
+        );
+      }
       return NextResponse.json(
-        { error: "Failed to communicate with Gemini API. Check your GEMINI_API_KEY in .env." },
+        { error: "Failed to communicate with Gemini API. Please check your GEMINI_API_KEY." },
         { status: 500 }
       );
     }

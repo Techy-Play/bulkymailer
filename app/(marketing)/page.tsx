@@ -1,6 +1,7 @@
 import { HeroSection } from "@/components/landing/hero";
 import { TrustedBySection } from "@/components/landing/trusted-by";
 import { FeaturesSection } from "@/components/landing/features";
+import { AIShowcaseSection } from "@/components/landing/ai-showcase";
 import { BenefitsSection } from "@/components/landing/benefits";
 import { HowItWorksSection } from "@/components/landing/how-it-works";
 import { PricingSection } from "@/components/landing/pricing";
@@ -14,6 +15,7 @@ export default function Home() {
       <HeroSection />
       <TrustedBySection />
       <FeaturesSection />
+      <AIShowcaseSection />
       <BenefitsSection />
       <HowItWorksSection />
       <PricingSection />
