@@ -203,7 +203,7 @@ export function Inspector({
             
             {/* Image Properties */}
             {selectedNode.type === 'image' && (
-              <div className="space-y-3">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Image URL</label>
                   <input
@@ -214,6 +214,115 @@ export function Inspector({
                     className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-purple-500/20 focus:outline-none"
                   />
                 </div>
+
+                {/* Shape Preset Selector */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1.5">Image Shape Preset</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => {
+                        onUpdateProp(selectedNode.id, 'shape', 'circle')
+                        onUpdateProp(selectedNode.id, 'width', '140')
+                        onUpdateProp(selectedNode.id, 'height', '140')
+                        onUpdateStyle(selectedNode.id, 'borderRadius', '50%')
+                        onUpdateStyle(selectedNode.id, 'align', 'center')
+                      }}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                        props.shape === 'circle' || style.borderRadius === '50%'
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      ⭕ Circle
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => {
+                        onUpdateProp(selectedNode.id, 'shape', 'rounded')
+                        onUpdateProp(selectedNode.id, 'width', '540')
+                        onUpdateStyle(selectedNode.id, 'borderRadius', '16px')
+                      }}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                        props.shape === 'rounded' || (style.borderRadius !== '50%' && style.borderRadius !== '0px')
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      ▢ Rounded
+                    </button>
+
+                    <button
+                      type="button"
+                      disabled={isLocked}
+                      onClick={() => {
+                        onUpdateProp(selectedNode.id, 'shape', 'square')
+                        onUpdateProp(selectedNode.id, 'width', '560')
+                        onUpdateStyle(selectedNode.id, 'borderRadius', '0px')
+                      }}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold border transition flex items-center justify-center gap-1 ${
+                        props.shape === 'square' || style.borderRadius === '0px'
+                          ? 'bg-purple-600 text-white border-purple-600 shadow-xs'
+                          : 'bg-gray-50 text-gray-700 border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      ▭ Rectangle
+                    </button>
+                  </div>
+                </div>
+
+                {/* Alignment */}
+                <div>
+                  <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Alignment</label>
+                  <div className="grid grid-cols-3 gap-1">
+                    {['left', 'center', 'right'].map((alignOpt) => (
+                      <button
+                        key={alignOpt}
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          onUpdateStyle(selectedNode.id, 'align', alignOpt)
+                          onUpdateProp(selectedNode.id, 'align', alignOpt)
+                        }}
+                        className={`py-1.5 text-xs font-semibold rounded-lg border capitalize transition ${
+                          (style.align || props.align || 'center') === alignOpt
+                            ? 'bg-purple-50 text-purple-700 border-purple-300 font-bold'
+                            : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }`}
+                      >
+                        {alignOpt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Size Controls */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-[11px] font-bold text-gray-500 uppercase">Width / Diameter (px)</label>
+                    <span className="font-mono text-xs text-purple-700 font-bold">{props.width || '140'}px</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="50"
+                    max="600"
+                    step="10"
+                    value={props.width || '140'}
+                    disabled={isLocked}
+                    onChange={(e) => {
+                      const val = e.target.value
+                      onUpdateProp(selectedNode.id, 'width', val)
+                      if (props.shape === 'circle' || style.borderRadius === '50%') {
+                        onUpdateProp(selectedNode.id, 'height', val)
+                      }
+                    }}
+                    className="w-full accent-purple-600 cursor-pointer"
+                  />
+                </div>
+
                 <div>
                   <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Alt Text (Screen Readers)</label>
                   <input
@@ -221,31 +330,9 @@ export function Inspector({
                     value={props.alt || ''}
                     disabled={isLocked}
                     onChange={(e) => onUpdateProp(selectedNode.id, 'alt', e.target.value)}
-                    placeholder="e.g. Hero banner showcasing summer discount"
+                    placeholder="e.g. Profile photo or hero banner"
                     className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-purple-500/20 focus:outline-none"
                   />
-                </div>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Width (px)</label>
-                    <input
-                      type="number"
-                      value={props.width || '560'}
-                      disabled={isLocked}
-                      onChange={(e) => onUpdateProp(selectedNode.id, 'width', e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-purple-500/20 focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Border Radius</label>
-                    <input
-                      type="text"
-                      value={style.borderRadius || '12px'}
-                      disabled={isLocked}
-                      onChange={(e) => onUpdateStyle(selectedNode.id, 'borderRadius', e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] focus:ring-2 focus:ring-purple-500/20 focus:outline-none"
-                    />
-                  </div>
                 </div>
               </div>
             )}

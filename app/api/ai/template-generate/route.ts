@@ -51,7 +51,7 @@ SAVED BRAND CONTEXT:
 STRICT DESIGN DIRECTIVES & RULES:
 1. DESIGN EXCELLENCE: Create modern, visually stunning, conversion-focused email templates with curated color palettes, elegant typography, rounded buttons, and clean spacing.
 2. SURGICAL MODIFICATION: If an existing HTML template is provided, apply the requested changes (colors, text, sections, CTA buttons) while preserving valid HTML structures.
-3. PRESERVE MERGE TAGS: Retain {{firstName}}, {{lastName}}, {{email}}, {{company}}, {{unsubscribeUrl}}.
+3. SINGLE FOOTER & MERGE TAGS: Ensure there is ONLY ONE clean footer containing {{unsubscribeUrl}}. Do not output duplicate footers or raw HTML entities like &copy; (use the literal © character instead).
 4. NO BROKEN IMAGES: If no logo URL is provided, use a clean text logo header for "${companyName}".
 5. NO MARKDOWN: Output ONLY raw valid JSON. Do not wrap in markdown \`\`\`json code blocks.
 `;

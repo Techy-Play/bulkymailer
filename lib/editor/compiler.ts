@@ -48,10 +48,15 @@ export function createDefaultTemplateJSON(): TemplateJSONNode {
   };
 }
 
-export function compileHTMLToNodeTree(html: string): TemplateJSONNode {
-  if (!html || !html.trim()) {
+export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
+  if (!rawHtml || !rawHtml.trim()) {
     return createDefaultTemplateJSON();
   }
+
+  // Clean HTML entity typos like &amp;copy; or &copy; -> ©
+  const html = rawHtml
+    .replace(/&amp;copy;/gi, '©')
+    .replace(/&copy;/gi, '©');
 
   const children: TemplateJSONNode[] = [];
 
@@ -102,28 +107,62 @@ export function compileHTMLToNodeTree(html: string): TemplateJSONNode {
     }
   });
 
-  // 5. Extract Images
-  const imgMatches = Array.from(html.matchAll(/<img[^>]*src=["']([^"']+)["'][^>]*>/gi));
+  // 5. Extract Images with Style & Shape Recognition
+  const imgMatches = Array.from(html.matchAll(/<img([^>]*)>/gi));
   imgMatches.forEach((m, idx) => {
-    const src = m[1];
+    const attrs = m[1];
+    const srcMatch = attrs.match(/src=["']([^"']+)["']/i);
+    const src = srcMatch ? srcMatch[1] : '';
+
     if (src && !src.includes('data:image')) {
+      const altMatch = attrs.match(/alt=["']([^"']*)["']/i);
+      const alt = altMatch ? altMatch[1] : 'Email image';
+
+      const widthMatch = attrs.match(/width=["']?(\d+)["']?/i) || attrs.match(/width:\s*(\d+)px/i);
+      const heightMatch = attrs.match(/height=["']?(\d+)["']?/i) || attrs.match(/height:\s*(\d+)px/i);
+
+      const widthVal = widthMatch ? widthMatch[1] : '';
+      const heightVal = heightMatch ? heightMatch[1] : '';
+
+      const isCircle = /border-radius:\s*(50%|9999px)/i.test(attrs) || /rounded-full/i.test(attrs) || (widthVal && heightVal && widthVal === heightVal && parseInt(widthVal) < 220);
+
+      const isCenter = /margin:\s*auto/i.test(attrs) || /align=["']center["']/i.test(attrs) || /text-align:\s*center/i.test(attrs);
+
+      const shape = isCircle ? 'circle' : 'rounded';
+      const borderRadius = isCircle ? '50%' : '12px';
+      const imgWidth = isCircle ? (widthVal || '140') : (widthVal || '540');
+      const imgHeight = isCircle ? (heightVal || widthVal || '140') : (heightVal || 'auto');
+
       children.push({
         id: `image-${Date.now()}-${idx}`,
         type: 'image',
-        name: `Image ${idx + 1}`,
+        name: isCircle ? `Circular Profile Logo ${idx + 1}` : `Image Banner ${idx + 1}`,
         version: 1,
         capabilities: { resize: true, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-        props: { src, alt: 'Email image', width: '540' },
-        style: { borderRadius: '12px' }
+        props: {
+          src,
+          alt,
+          width: imgWidth,
+          height: imgHeight,
+          shape,
+          objectFit: isCircle ? 'cover' : 'contain',
+        },
+        style: {
+          borderRadius,
+          align: isCenter ? 'center' : 'left',
+          width: `${imgWidth}px`,
+          height: isCircle ? `${imgHeight}px` : 'auto',
+          objectFit: isCircle ? 'cover' : 'contain',
+        }
       });
     }
   });
 
-  // 6. Extract paragraphs as text nodes
+  // 6. Extract Paragraphs as Text Nodes
   const allParagraphs = Array.from(html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi));
   allParagraphs.forEach((m, idx) => {
     const text = m[1].replace(/<[^>]+>/g, '').trim();
-    if (text && text !== subtitleText && text.length > 5) {
+    if (text && text !== subtitleText && text.length > 3) {
       children.push({
         id: `text-${Date.now()}-${idx}`,
         type: 'text',
@@ -151,17 +190,25 @@ export function compileHTMLToNodeTree(html: string): TemplateJSONNode {
     });
   }
 
-  // 7. Footer Node
-  children.push({
-    id: `footer-${Date.now()}`,
-    type: 'footer',
-    name: 'Footer',
-    locked: true,
-    version: 1,
-    capabilities: { resize: false, duplicate: false, delete: false, move: false, inlineEdit: false, ai: false },
-    props: { companyName: 'BulkyMailer', address: 'CAN-SPAM Compliant Address', unsubscribeUrl: '{{unsubscribeUrl}}' },
-    style: { backgroundColor: '#F9FAFB', textColor: '#9CA3AF' }
-  });
+  // 7. Footer Deduplication: Only append default footer if HTML does NOT already contain an unsubscribe link or footer
+  const hasExistingUnsubscribe =
+    /unsubscribe/i.test(html) ||
+    /\{\{unsubscribeUrl\}\}/i.test(html) ||
+    /<footer/i.test(html) ||
+    children.some((c) => c.type === 'footer' || (c.props?.content && /unsubscribe/i.test(c.props.content)));
+
+  if (!hasExistingUnsubscribe) {
+    children.push({
+      id: `footer-${Date.now()}`,
+      type: 'footer',
+      name: 'Footer',
+      locked: true,
+      version: 1,
+      capabilities: { resize: false, duplicate: false, delete: false, move: false, inlineEdit: false, ai: false },
+      props: { companyName: 'BulkyMailer', address: 'CAN-SPAM Compliant Address', unsubscribeUrl: '{{unsubscribeUrl}}' },
+      style: { backgroundColor: '#F9FAFB', textColor: '#9CA3AF' }
+    });
+  }
 
   return {
     id: 'root-container',

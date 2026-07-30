@@ -195,14 +195,27 @@ export function Canvas({
         </div>
       )
     } else if (node.type === 'image') {
-      const imgWidth = Number(p.width || 560)
+      const isCircle = p.shape === 'circle' || s.shape === 'circle' || s.borderRadius === '50%' || s.borderRadius === '9999px'
+      const isRounded = s.shape === 'rounded' || (!isCircle && (s.borderRadius || p.borderRadius))
+      const imgWidth = Number(p.width || (isCircle ? 140 : 560))
+      const imgHeight = Number(p.height || (isCircle ? 140 : 0))
+      const alignClass = (s.align || p.align) === 'left' ? 'text-left' : (s.align || p.align) === 'right' ? 'text-right' : 'text-center'
+      
+      const imgStyle: React.CSSProperties = {
+        width: isCircle ? `${imgHeight || imgWidth || 140}px` : `${imgWidth}px`,
+        height: isCircle ? `${imgHeight || imgWidth || 140}px` : imgHeight > 0 ? `${imgHeight}px` : 'auto',
+        borderRadius: isCircle ? '50%' : isRounded ? (s.borderRadius || '16px') : (s.borderRadius || '0px'),
+        objectFit: (s.objectFit || p.objectFit || (isCircle ? 'cover' : 'contain')) as any,
+        display: 'inline-block',
+      }
+
       content = (
-        <div className="py-2 text-center relative inline-block max-w-full">
+        <div className={`py-2 relative ${alignClass} max-w-full`}>
           <img
             src={p.src}
             alt={p.alt || ''}
-            style={{ width: `${imgWidth}px`, borderRadius: s.borderRadius || '12px' }}
-            className="max-w-full h-auto mx-auto block"
+            style={imgStyle}
+            className="max-w-full block mx-auto shadow-xs transition-all"
           />
 
           {/* Corner Resize Handles for Image */}
