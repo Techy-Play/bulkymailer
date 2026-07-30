@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import {
   Settings, Link as LinkIcon, Palette, ShieldCheck, Lock, Unlock,
-  Sliders, Eye, Copy, Trash2, ArrowUp, ArrowDown, Sparkles, ExternalLink, RefreshCw
+  Sliders, Eye, Copy, Trash2, ArrowUp, ArrowDown, Sparkles, ExternalLink, RefreshCw, Plus, Type, Heading, Image, MousePointer, ShoppingBag, Layout
 } from 'lucide-react'
 import { TemplateJSONNode, DesignTokens, ValidationIssue } from '@/lib/editor/types'
 import { HealthPanel } from './HealthPanel'
@@ -20,6 +20,7 @@ interface InspectorProps {
   onDeleteNode: (nodeId: string) => void
   onDuplicateNode: (nodeId: string) => void
   onSelectNode: (nodeId: string) => void
+  onAddComponent?: (type: 'hero' | 'heading' | 'text' | 'button' | 'image' | 'product' | 'footer') => void
 }
 
 export function Inspector({
@@ -34,23 +35,74 @@ export function Inspector({
   onDeleteNode,
   onDuplicateNode,
   onSelectNode,
+  onAddComponent,
 }: InspectorProps) {
   const [activeTab, setActiveTab] = useState<'props' | 'link' | 'tokens' | 'health'>('props')
 
   if (!selectedNode) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0">
+      <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-sm">
         <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <h3 className="font-bold text-xs text-[#111827] flex items-center gap-1.5">
             <Sliders className="w-4 h-4 text-purple-600" />
             Figma Inspector Panel
           </h3>
         </div>
-        <div className="flex-1 p-6 flex flex-col items-center justify-center text-center space-y-3 text-gray-400">
-          <Sliders className="w-8 h-8 text-gray-300" />
-          <p className="text-xs font-bold text-gray-700">No Component Selected</p>
-          <p className="text-[11px] text-gray-500">Click any element on the live preview canvas to inspect and edit its properties.</p>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-5">
+          <div className="p-3.5 bg-purple-50/60 border border-purple-200 rounded-2xl text-center space-y-1">
+            <p className="text-xs font-bold text-[#111827]">No Component Selected</p>
+            <p className="text-[11px] text-[#6B7280]">Click any element on the canvas to edit, or add a new component below.</p>
+          </div>
+
+          {/* 1-Click Component Add Palette */}
+          {onAddComponent && (
+            <div className="space-y-2">
+              <label className="block text-[11px] font-bold text-[#6B7280] uppercase tracking-wide flex items-center gap-1">
+                <Plus className="w-3.5 h-3.5 text-purple-600" /> Add Component to Canvas
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => onAddComponent('hero')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <Layout className="w-4 h-4 text-purple-600 shrink-0" /> Hero Banner
+                </button>
+                <button
+                  onClick={() => onAddComponent('heading')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <Heading className="w-4 h-4 text-indigo-600 shrink-0" /> Heading
+                </button>
+                <button
+                  onClick={() => onAddComponent('text')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <Type className="w-4 h-4 text-blue-600 shrink-0" /> Paragraph
+                </button>
+                <button
+                  onClick={() => onAddComponent('button')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <MousePointer className="w-4 h-4 text-emerald-600 shrink-0" /> CTA Button
+                </button>
+                <button
+                  onClick={() => onAddComponent('image')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <Image className="w-4 h-4 text-amber-600 shrink-0" /> Image
+                </button>
+                <button
+                  onClick={() => onAddComponent('product')}
+                  className="p-2.5 bg-gray-50 hover:bg-purple-50 border border-gray-200 hover:border-purple-300 rounded-xl text-xs font-bold text-[#111827] flex items-center gap-2 transition text-left"
+                >
+                  <ShoppingBag className="w-4 h-4 text-pink-600 shrink-0" /> Product Card
+                </button>
+              </div>
+            </div>
+          )}
         </div>
+
         <div className="p-4 border-t border-gray-200">
           <HealthPanel issues={issues} score={healthScore} onSelectNode={onSelectNode} />
         </div>
