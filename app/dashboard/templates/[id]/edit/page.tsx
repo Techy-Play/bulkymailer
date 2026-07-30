@@ -43,9 +43,9 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
   const [saved, setSaved] = useState(false)
   const [lastSavedTime, setLastSavedTime] = useState<string | null>(null)
 
-  // Editor State
+  // Editor State — Starts with a clean blank canvas (no prebuilt summer sale blocks)
   const [rootNode, setRootNode] = useState<TemplateJSONNode>(createDefaultTemplateJSON())
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>('hero-1')
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [htmlContent, setHtmlContent] = useState('')
   const [previewTab, setPreviewTab] = useState<'desktop' | 'mobile' | 'inbox'>('desktop')
 
@@ -112,6 +112,12 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
 
         setRootNode(initialRoot)
         commandManagerRef.current = new CommandManager(initialRoot)
+
+        if (initialRoot.children && initialRoot.children.length > 0) {
+          setSelectedNodeId(initialRoot.children[0].id)
+        } else {
+          setSelectedNodeId(null)
+        }
 
         const initialHtml = tpl.htmlContent || serializeJSONToEmailHTML(initialRoot)
         setHtmlContent(initialHtml)
@@ -359,7 +365,6 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           setSnapshots(prev => [aiSnap, ...prev])
           setCurrentSnapshotId(aiSnap.id)
         } else {
-          // If node tree compilation fallback
           setHtmlContent(data.html)
         }
       }
@@ -410,7 +415,6 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
   const selectedNode = selectedNodeId ? rootNode.children?.find(c => c.id === selectedNodeId) || (rootNode.id === selectedNodeId ? rootNode : null) : null
 
   return (
-    /* Clean layout container with -m-6 negating parent DashboardShell padding for flush top fit */
     <div className="h-screen -m-6 flex flex-col bg-[#F8FAFC] overflow-hidden">
       
       {/* Top Header */}
@@ -776,7 +780,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
               <textarea
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                placeholder="e.g. 'Change email background to dark purple', 'Make the CTA button full-width with rounded corners'..."
+                placeholder="e.g. 'Build a modern product release newsletter with hero banner, 2 product cards, and dark footer'..."
                 rows={3}
                 className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-2xl text-xs text-[#111827] focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400 focus:outline-none resize-none font-medium"
               />

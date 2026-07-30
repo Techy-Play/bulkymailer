@@ -190,6 +190,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
+      data-scroll-behavior="smooth"
       className={`${polarSans.variable} ${superXDisplay.variable} ${polarMono.variable} h-full antialiased scroll-smooth`}
     >
       <head>

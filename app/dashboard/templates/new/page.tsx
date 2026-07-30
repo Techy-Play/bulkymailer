@@ -56,7 +56,7 @@ export default function NewTemplatePage() {
         body: JSON.stringify({
           name: 'Untitled Template',
           category: 'GENERAL',
-          htmlContent: "<!DOCTYPE html><html><body style='font-family:sans-serif;padding:20px;'><h1>Your Email</h1><p>Start writing your content here...</p></body></html>"
+          htmlContent: ""
         })
       })
       const data = await res.json()

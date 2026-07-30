@@ -8,6 +8,8 @@ import {
   Building2, Globe, MapPin, Users, Phone, ChevronRight, ArrowLeft,
 } from "lucide-react";
 import { LoadingButton } from "@/components/ui/loading-button";
+import { COUNTRIES, Country } from "@/components/ui/country-data";
+import { PhoneCountrySelect } from "@/components/ui/searchable-select";
 
 type Step = 0 | 1 | 2;
 
@@ -99,13 +101,16 @@ export default function RegisterPage() {
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  // Phone Country Selector (Default: India +91)
+  const [phoneCountry, setPhoneCountry] = useState<Country>(COUNTRIES[0]);
+  const [rawPhone, setRawPhone] = useState("");
+
   const [form, setForm] = useState({
     // Step 0 — Personal
     firstName: "",
     lastName: "",
     email: "",
     password: "",
-    phoneNumber: "",
     // Step 1 — Organization
     companyName: "",
     website: "",
@@ -125,7 +130,7 @@ export default function RegisterPage() {
   const set = (field: keyof typeof form, value: unknown) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  // Password strength
+  // Password strength calculation
   const ps = (() => {
     const p = form.password;
     if (!p.length) return 0;
@@ -167,12 +172,14 @@ export default function RegisterPage() {
   async function handleSubmit() {
     setLoading(true);
     setError("");
+    const formattedPhoneNumber = rawPhone.trim() ? `${phoneCountry.dialCode} ${rawPhone.trim()}` : "";
     try {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          phoneNumber: formattedPhoneNumber,
           sellsOnline: form.sellsOnline === true,
         }),
       });
@@ -190,7 +197,7 @@ export default function RegisterPage() {
   }
 
   const inputClass =
-    "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:outline-none transition placeholder:text-gray-400";
+    "w-full px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:outline-none transition placeholder:text-gray-400 font-medium";
 
   const labelClass =
     "block text-xs font-semibold text-[#374151] uppercase tracking-wide mb-1.5";
@@ -201,10 +208,8 @@ export default function RegisterPage() {
         {/* Logo */}
         <div className="text-center mb-6">
           <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-              <Mail className="w-4.5 h-4.5 text-white" />
-            </div>
-            <span className="font-bold text-[#111827] text-xl tracking-tight">BulkyMailer</span>
+            <img src="/icon.png" alt="BulkyMailer" width={36} height={36} className="h-9 w-9 object-contain" />
+            <span className="font-extrabold text-[#111827] text-xl tracking-tight">Bulky<span className="text-indigo-600">Mailer</span></span>
           </div>
           <h1 className="text-2xl font-bold text-[#111827]">Create your account</h1>
           <p className="text-sm text-[#6B7280] mt-1">
@@ -240,7 +245,7 @@ export default function RegisterPage() {
                   <div className="relative">
                     <input type="text" value={form.firstName} onChange={(e) => set("firstName", e.target.value)}
                       placeholder="Alex" required className={`${inputClass} pl-9`} />
-                    <User className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+                    <User className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3.5" />
                   </div>
                 </div>
                 <div>
@@ -255,17 +260,20 @@ export default function RegisterPage() {
                 <div className="relative">
                   <input type="email" value={form.email} onChange={(e) => set("email", e.target.value)}
                     placeholder="alex@company.com" required className={`${inputClass} pl-9`} />
-                  <Mail className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+                  <Mail className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3.5" />
                 </div>
               </div>
 
+              {/* Mobile Number with Searchable Country Code Selector */}
               <div>
-                <label className={labelClass}>Phone Number</label>
-                <div className="relative">
-                  <input type="tel" value={form.phoneNumber} onChange={(e) => set("phoneNumber", e.target.value)}
-                    placeholder="+1 555 000 0000" className={`${inputClass} pl-9`} />
-                  <Phone className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
-                </div>
+                <PhoneCountrySelect
+                  label="Phone Number"
+                  phoneNumber={rawPhone}
+                  placeholder="98765 43210"
+                  selectedCountry={phoneCountry}
+                  onCountryChange={setPhoneCountry}
+                  onPhoneNumberChange={setRawPhone}
+                />
               </div>
 
               <div>
@@ -274,9 +282,9 @@ export default function RegisterPage() {
                   <input type={showPassword ? "text" : "password"} value={form.password}
                     onChange={(e) => set("password", e.target.value)}
                     placeholder="Min. 8 characters" required className={`${inputClass} pl-9 pr-10`} />
-                  <Lock className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+                  <Lock className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3.5" />
                   <button type="button" onClick={() => setShowPassword((s) => !s)}
-                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600" tabIndex={-1}>
+                    className="absolute right-3 top-3 text-gray-400 hover:text-gray-600" tabIndex={-1}>
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
@@ -287,14 +295,14 @@ export default function RegisterPage() {
                         <div key={i} className={`h-1.5 flex-1 rounded-full transition-all ${i <= ps ? psColor : "bg-gray-200"}`} />
                       ))}
                     </div>
-                    <span className="text-xs text-[#6B7280]">{psLabel}</span>
+                    <span className="text-xs text-[#6B7280] font-semibold">{psLabel}</span>
                   </div>
                 )}
               </div>
             </div>
           )}
 
-          {/* ── Step 1: Organization ── */}
+          {/* ── Step 1: Organization & Address ── */}
           {step === 1 && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 mb-4">
@@ -318,11 +326,11 @@ export default function RegisterPage() {
                 <div className="relative">
                   <input type="text" value={form.website} onChange={(e) => set("website", e.target.value)}
                     placeholder="mycompany.com" className={`${inputClass} pl-9`} />
-                  <Globe className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3" />
+                  <Globe className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3.5" />
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
                 <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
                 <p className="text-xs font-semibold text-[#374151] uppercase tracking-wide">Physical Address</p>
               </div>
@@ -332,11 +340,13 @@ export default function RegisterPage() {
                 <input type="text" value={form.addressLine1} onChange={(e) => set("addressLine1", e.target.value)}
                   placeholder="123 Main Street" required className={inputClass} />
               </div>
+
               <div>
                 <label className={labelClass}>Address Line 2</label>
                 <input type="text" value={form.addressLine2} onChange={(e) => set("addressLine2", e.target.value)}
                   placeholder="Suite 400 (optional)" className={inputClass} />
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>City *</label>
@@ -349,6 +359,7 @@ export default function RegisterPage() {
                     placeholder="NY" className={inputClass} />
                 </div>
               </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Postal Code *</label>
@@ -429,7 +440,7 @@ export default function RegisterPage() {
           <div className="flex items-center justify-between mt-8 pt-5 border-t border-gray-100">
             {step > 0 ? (
               <button type="button" onClick={() => setStep((s) => (s - 1) as Step)}
-                className="flex items-center gap-2 text-sm text-[#6B7280] hover:text-[#111827] transition">
+                className="flex items-center gap-2 text-sm text-[#6B7280] hover:text-[#111827] transition font-medium">
                 <ArrowLeft className="w-4 h-4" /> Back
               </button>
             ) : (
@@ -439,12 +450,12 @@ export default function RegisterPage() {
             {step < 2 ? (
               <button type="button" onClick={() => setStep((s) => (s + 1) as Step)}
                 disabled={!canAdvance()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors">
+                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
                 Continue <ChevronRight className="w-4 h-4" />
               </button>
             ) : (
               <LoadingButton type="button" onClick={handleSubmit} loading={loading} disabled={!canAdvance()}
-                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors">
+                className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">
                 <ArrowRight className="w-4 h-4" /> Create Account
               </LoadingButton>
             )}

@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react'
 import {
   Sparkles, GripVertical, ChevronUp, ChevronDown, Lock, Trash2, Copy, Eye,
-  Layout, Image as ImageIcon, MousePointer, Type, AlignLeft, Box, ShoppingBag, Share2, Minus, FileText
+  Layout, Image as ImageIcon, MousePointer, Type, AlignLeft, Box, ShoppingBag, Share2, Minus, FileText, Plus
 } from 'lucide-react'
 import { TemplateJSONNode, ComponentType } from '@/lib/editor/types'
 import { PLUGIN_REGISTRY } from '@/lib/editor/plugins'
@@ -300,18 +300,39 @@ export function Canvas({
     )
   }
 
+  const isCanvasEmpty = !root.children || root.children.length === 0
+
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC] overflow-auto p-6 items-center justify-center relative">
       
       {/* Canvas Viewport Frame */}
       {previewTab === 'desktop' ? (
-        <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-md p-6 min-h-[600px] my-auto space-y-2 relative">
-          {root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))}
+        <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-md p-6 min-h-[600px] my-auto space-y-2 relative flex flex-col">
+          {isCanvasEmpty ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-8 my-auto">
+              <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
+                <Sparkles className="w-6 h-6" />
+              </div>
+              <h3 className="text-base font-bold text-[#111827]">Blank Canvas Page</h3>
+              <p className="text-xs text-[#6B7280] max-w-sm mt-1 mb-4">
+                Your template is blank. Use the AI Assistant, select components from the inspector, or type code in Monaco editor to start building.
+              </p>
+            </div>
+          ) : (
+            root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))
+          )}
         </div>
       ) : previewTab === 'mobile' ? (
-        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-y-auto p-4 shrink-0 my-auto">
+        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-y-auto p-4 shrink-0 my-auto flex flex-col">
           <div className="top-0 inset-x-0 h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto mb-4"></div>
-          {root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))}
+          {isCanvasEmpty ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 p-6 my-auto">
+              <p className="text-xs font-bold text-[#111827]">Blank Page</p>
+              <p className="text-[11px] text-[#6B7280] mt-1">Empty mobile view canvas</p>
+            </div>
+          ) : (
+            root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))
+          )}
         </div>
       ) : (
         <div className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-md p-6 space-y-4">
@@ -323,8 +344,8 @@ export function Canvas({
                 <span className="font-bold text-sm text-[#111827]">BulkyMailer Campaign</span>
                 <span className="text-xs text-[#6B7280]">Just now</span>
               </div>
-              <p className="text-xs font-semibold text-[#111827] truncate">Special Announcement & Exclusive Deals</p>
-              <p className="text-xs text-[#6B7280] truncate">Open inside for handpicked summer offers...</p>
+              <p className="text-xs font-semibold text-[#111827] truncate">Custom Email Subject</p>
+              <p className="text-xs text-[#6B7280] truncate">Blank template preview...</p>
             </div>
           </div>
         </div>
