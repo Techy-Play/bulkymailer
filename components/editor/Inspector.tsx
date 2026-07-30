@@ -41,7 +41,7 @@ export function Inspector({
 
   if (!selectedNode) {
     return (
-      <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-sm">
+      <div className="w-full bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-sm">
         <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
           <h3 className="font-bold text-xs text-[#111827] flex items-center gap-1.5">
             <Sliders className="w-4 h-4 text-purple-600" />
@@ -115,7 +115,7 @@ export function Inspector({
   const isLocked = selectedNode.locked || false
 
   return (
-    <div className="w-80 bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-sm">
+    <div className="w-full bg-white border-l border-gray-200 flex flex-col h-full shrink-0 shadow-sm">
       
       {/* Node Header & Actions */}
       <div className="p-3.5 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-purple-50/40 flex items-center justify-between">

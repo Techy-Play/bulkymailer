@@ -87,6 +87,14 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
   const [testEmailSending, setTestEmailSending] = useState(false)
   const [testEmailResult, setTestEmailResult] = useState('')
 
+  // Resizable Panel State
+  const [inspectorWidth, setInspectorWidth] = useState(340)
+  const [codeEditorHeight, setCodeEditorHeight] = useState(320)
+  const [isDraggingH, setIsDraggingH] = useState(false)
+  const [isDraggingV, setIsDraggingV] = useState(false)
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>('preview')
+  const dragStartRef = useRef({ x: 0, y: 0, startWidth: 0, startHeight: 0 })
+
   const editorRef = useRef<any>(null)
   const syncTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -200,6 +208,39 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [selectedNodeId])
+
+  // 4. Resizable Panel Drag Handlers
+  useEffect(() => {
+    function onMouseMove(e: MouseEvent) {
+      if (isDraggingH) {
+        const diff = dragStartRef.current.x - e.clientX
+        const newWidth = Math.min(Math.max(dragStartRef.current.startWidth + diff, 260), 600)
+        setInspectorWidth(newWidth)
+      }
+      if (isDraggingV) {
+        const diff = dragStartRef.current.y - e.clientY
+        const newHeight = Math.min(Math.max(dragStartRef.current.startHeight + diff, 120), Math.floor(window.innerHeight * 0.5))
+        setCodeEditorHeight(newHeight)
+      }
+    }
+    function onMouseUp() {
+      setIsDraggingH(false)
+      setIsDraggingV(false)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+
+    if (isDraggingH || isDraggingV) {
+      document.body.style.cursor = isDraggingH ? 'col-resize' : 'row-resize'
+      document.body.style.userSelect = 'none'
+      window.addEventListener('mousemove', onMouseMove)
+      window.addEventListener('mouseup', onMouseUp)
+    }
+    return () => {
+      window.removeEventListener('mousemove', onMouseMove)
+      window.removeEventListener('mouseup', onMouseUp)
+    }
+  }, [isDraggingH, isDraggingV])
 
   // Command Action Handlers
   const handleUndo = () => {
@@ -604,7 +645,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
             }`}
           >
             <Code2 className="w-3.5 h-3.5" />
-            {showCodeEditor ? "Hide Code" : "Monaco Code"}
+            {showCodeEditor ? "Hide Code" : "HTML Code"}
           </button>
 
           <LoadingButton
@@ -617,11 +658,11 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
 
-      {/* Main Workspace: Visual Canvas (Left) & Inspector (Right) */}
+      {/* Main Workspace: Canvas/Preview + Inspector with Resizable Panels */}
       <div className="flex-1 min-h-0 flex relative overflow-hidden">
         
-        {/* CENTER VIEWPORT: Interactive Direct Viewport */}
-        <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC]">
+        {/* CENTER VIEWPORT */}
+        <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC]" style={{ minWidth: 380 }}>
           
           <Breadcrumb
             root={rootNode}
@@ -629,81 +670,174 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
             onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
           />
 
-          <div className="flex items-center justify-between px-6 py-2 border-b border-gray-200 bg-white shrink-0 shadow-2xs">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#111827]">
-              <Eye className="w-4 h-4 text-indigo-600" />
-              <span>Interactive Direct Manipulation Viewport</span>
+          {/* Viewport Toolbar */}
+          <div className="flex items-center justify-between px-4 py-1.5 border-b border-gray-200 bg-white shrink-0 shadow-2xs gap-2">
+            {/* View Mode Toggle: Edit vs Preview */}
+            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs">
+              <button
+                onClick={() => setViewMode('edit')}
+                className={`px-2.5 py-1 flex items-center gap-1 font-semibold rounded-md transition ${viewMode === 'edit' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <Layers className="w-3 h-3" /> Edit
+              </button>
+              <button
+                onClick={() => setViewMode('preview')}
+                className={`px-2.5 py-1 flex items-center gap-1 font-semibold rounded-md transition ${viewMode === 'preview' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500 hover:text-gray-700'}`}
+              >
+                <Eye className="w-3 h-3" /> Preview
+              </button>
             </div>
 
-            <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl border border-gray-200 text-xs">
+            {/* Device Tabs */}
+            <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs">
               <button
                 onClick={() => setPreviewTab('desktop')}
-                className={`px-3 py-1 flex items-center gap-1.5 font-semibold rounded-lg transition ${previewTab === 'desktop' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
+                className={`px-2.5 py-1 flex items-center gap-1 font-semibold rounded-md transition ${previewTab === 'desktop' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
               >
-                <Monitor className="w-3.5 h-3.5" /> Desktop
+                <Monitor className="w-3 h-3" /> Desktop
               </button>
               <button
                 onClick={() => setPreviewTab('mobile')}
-                className={`px-3 py-1 flex items-center gap-1.5 font-semibold rounded-lg transition ${previewTab === 'mobile' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
+                className={`px-2.5 py-1 flex items-center gap-1 font-semibold rounded-md transition ${previewTab === 'mobile' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
               >
-                <Smartphone className="w-3.5 h-3.5" /> Mobile
+                <Smartphone className="w-3 h-3" /> Mobile
               </button>
               <button
                 onClick={() => setPreviewTab('inbox')}
-                className={`px-3 py-1 flex items-center gap-1.5 font-semibold rounded-lg transition ${previewTab === 'inbox' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
+                className={`px-2.5 py-1 flex items-center gap-1 font-semibold rounded-md transition ${previewTab === 'inbox' ? 'bg-white text-[#111827] shadow-2xs' : 'text-gray-500'}`}
               >
-                <Inbox className="w-3.5 h-3.5" /> Inbox
+                <Inbox className="w-3 h-3" /> Inbox
               </button>
             </div>
           </div>
 
-          <Canvas
-            root={rootNode}
-            selectedNodeId={selectedNodeId}
-            previewTab={previewTab}
-            onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
-            onUpdateProp={handleUpdateProp}
-            onUpdateStyle={handleUpdateStyle}
-            onMoveNode={handleMoveNode}
-            onDuplicateNode={handleDuplicateNode}
-            onDeleteNode={handleDeleteNode}
-            onToggleLock={handleToggleLock}
-            onAskAI={(node, prompt) => {
-              setSelectedNodeId(node.id)
-              setAiPrompt(prompt)
-              setShowAiWorkspace(true)
-            }}
-          />
+          {/* Canvas / Live HTML Preview Area */}
+          {viewMode === 'preview' ? (
+            <div className="flex-1 min-h-0 flex items-center justify-center bg-[#F0F2F5] p-4 overflow-auto">
+              {previewTab === 'desktop' ? (
+                <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
+                  <iframe
+                    srcDoc={htmlContent || '<!DOCTYPE html><html><body style="padding:40px;text-align:center;color:#9ca3af;font-family:sans-serif;">No content yet. Use the AI Assistant or switch to Edit mode.</body></html>'}
+                    title="Live Preview"
+                    className="w-full h-full border-0"
+                    style={{ minHeight: 500 }}
+                  />
+                </div>
+              ) : previewTab === 'mobile' ? (
+                <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-hidden shrink-0">
+                  <div className="h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto" />
+                  <iframe
+                    srcDoc={htmlContent || '<!DOCTYPE html><html><body style="padding:40px;text-align:center;color:#9ca3af;font-family:sans-serif;">No content yet</body></html>'}
+                    title="Mobile Preview"
+                    className="w-full border-0"
+                    style={{ height: 'calc(100% - 20px)' }}
+                  />
+                </div>
+              ) : (
+                <div className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-md p-6 space-y-4">
+                  <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wide">Gmail Inbox Preview</h4>
+                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center shrink-0">B</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold text-sm text-[#111827]">BulkyMailer Campaign</span>
+                        <span className="text-xs text-[#6B7280]">Just now</span>
+                      </div>
+                      <p className="text-xs font-semibold text-[#111827] truncate">{name || 'Custom Email Subject'}</p>
+                      <p className="text-xs text-[#6B7280] truncate">Preview of your email template...</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Canvas
+              root={rootNode}
+              selectedNodeId={selectedNodeId}
+              previewTab={previewTab}
+              onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+              onUpdateProp={handleUpdateProp}
+              onUpdateStyle={handleUpdateStyle}
+              onMoveNode={handleMoveNode}
+              onDuplicateNode={handleDuplicateNode}
+              onDeleteNode={handleDeleteNode}
+              onToggleLock={handleToggleLock}
+              onAskAI={(node, prompt) => {
+                setSelectedNodeId(node.id)
+                setAiPrompt(prompt)
+                setShowAiWorkspace(true)
+              }}
+            />
+          )}
         </div>
 
-        {/* RIGHT PANEL: Figma Inspector */}
-        <Inspector
-          selectedNode={selectedNode}
-          tokens={tokens}
-          issues={healthIssues}
-          healthScore={healthScore}
-          onUpdateProp={handleUpdateProp}
-          onUpdateStyle={handleUpdateStyle}
-          onUpdateTokens={(newTokens) => tokenEngine.updateTokens(newTokens)}
-          onToggleLock={handleToggleLock}
-          onDeleteNode={handleDeleteNode}
-          onDuplicateNode={handleDuplicateNode}
-          onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
-          onAddComponent={handleAddComponent}
-        />
+        {/* Horizontal Resize Divider (Canvas ↔ Inspector) */}
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsDraggingH(true)
+            dragStartRef.current = { x: e.clientX, y: 0, startWidth: inspectorWidth, startHeight: 0 }
+          }}
+          className={`w-1.5 shrink-0 cursor-col-resize group relative transition-colors hidden lg:flex items-center ${
+            isDraggingH ? 'bg-purple-500' : 'bg-gray-100 hover:bg-purple-400'
+          }`}
+        >
+          <div className="absolute inset-y-0 -left-1.5 -right-1.5 z-10" />
+          <div className={`w-1 h-10 rounded-full mx-auto transition-colors ${
+            isDraggingH ? 'bg-purple-300' : 'bg-gray-300 group-hover:bg-purple-300'
+          }`} />
+        </div>
+
+        {/* RIGHT PANEL: Inspector (resizable width) */}
+        <div className="hidden lg:flex shrink-0 h-full" style={{ width: inspectorWidth }}>
+          <Inspector
+            selectedNode={selectedNode}
+            tokens={tokens}
+            issues={healthIssues}
+            healthScore={healthScore}
+            onUpdateProp={handleUpdateProp}
+            onUpdateStyle={handleUpdateStyle}
+            onUpdateTokens={(newTokens) => tokenEngine.updateTokens(newTokens)}
+            onToggleLock={handleToggleLock}
+            onDeleteNode={handleDeleteNode}
+            onDuplicateNode={handleDuplicateNode}
+            onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+            onAddComponent={handleAddComponent}
+          />
+        </div>
       </div>
 
-      {/* Monaco Code Drawer */}
-      <div className={`bg-white border-t border-gray-200 transition-all duration-300 flex flex-col shrink-0 z-30 ${
-        showCodeEditor ? 'h-[360px]' : 'h-10'
-      }`}>
+      {/* Vertical Resize Divider (Workspace ↔ Monaco) */}
+      {showCodeEditor && (
+        <div
+          onMouseDown={(e) => {
+            e.preventDefault()
+            setIsDraggingV(true)
+            dragStartRef.current = { x: 0, y: e.clientY, startWidth: 0, startHeight: codeEditorHeight }
+          }}
+          className={`h-1.5 shrink-0 cursor-row-resize group relative transition-colors ${
+            isDraggingV ? 'bg-purple-500' : 'bg-gray-200 hover:bg-purple-400'
+          }`}
+        >
+          <div className="absolute inset-x-0 -top-1.5 -bottom-1.5 z-10" />
+          <div className={`h-1 w-12 rounded-full mx-auto mt-px transition-colors ${
+            isDraggingV ? 'bg-purple-300' : 'bg-gray-300 group-hover:bg-purple-300'
+          }`} />
+        </div>
+      )}
+
+      {/* Monaco Code Editor (Resizable Bottom Panel) */}
+      <div
+        className={`bg-white border-t border-gray-200 flex flex-col shrink-0 z-30 ${showCodeEditor ? '' : 'h-10'}`}
+        style={showCodeEditor ? { height: codeEditorHeight } : undefined}
+      >
         <button
           onClick={() => setShowCodeEditor(!showCodeEditor)}
           className="w-full h-10 px-4 flex items-center justify-between bg-gray-900 text-white text-xs font-semibold hover:bg-black transition shrink-0"
         >
           <div className="flex items-center gap-2">
             <Code2 className="w-4 h-4 text-purple-400" />
-            <span>Monaco HTML Code Editor (Transaction Buffer Compiled)</span>
+            <span>HTML Source Code</span>
           </div>
           <div className="flex items-center gap-2">
             {showCodeEditor ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
@@ -713,7 +847,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
         {showCodeEditor && (
           <div className="flex-1 min-h-0 bg-white">
             <Editor
-              height="320px"
+              height="100%"
               defaultLanguage="html"
               theme="vs"
               value={htmlContent}
