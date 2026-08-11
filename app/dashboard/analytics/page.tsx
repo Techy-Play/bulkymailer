@@ -119,10 +119,12 @@ export default function AnalyticsMetricsPage() {
 
   const timeSeries: TimeSeriesPoint[] = data?.timeSeries || [];
 
-  // Filtered recipients
+  // Filtered recipients safely avoiding undefined errors
   const filteredRecipients = (data?.recipientsTable || []).filter((r: any) => {
-    const matchesSearch = r.email.toLowerCase().includes(recipientSearch.toLowerCase());
-    const matchesFilter = recipientFilter === "ALL" || r.status.toUpperCase() === recipientFilter;
+    const emailStr = r?.to || r?.email || "";
+    const statusStr = r?.status || "Delivered";
+    const matchesSearch = emailStr.toLowerCase().includes(recipientSearch.toLowerCase());
+    const matchesFilter = recipientFilter === "ALL" || statusStr.toUpperCase() === recipientFilter;
     return matchesSearch && matchesFilter;
   });
 
@@ -457,23 +459,27 @@ export default function AnalyticsMetricsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-medium">
-                  {filteredRecipients.map((r: any, idx: number) => (
-                    <tr key={idx} className="hover:bg-gray-50/80 transition">
-                      <td className="p-3.5 font-bold text-[#111827]">{r.to || r.email}</td>
-                      <td className="p-3.5">
-                        <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${
-                          r.status === "Opened" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
-                          r.status === "Clicked" ? "bg-amber-50 text-amber-700 border-amber-200" :
-                          r.status === "Bounced" ? "bg-red-50 text-red-700 border-red-200" :
-                          "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        }`}>
-                          ● {r.status}
-                        </span>
-                      </td>
-                      <td className="p-3.5 font-semibold text-gray-700 truncate max-w-xs">{r.subject || "testing feature"}</td>
-                      <td className="p-3.5 text-gray-500 font-semibold">{r.sent || "2h ago"}</td>
-                    </tr>
-                  ))}
+                  {filteredRecipients.map((r: any, idx: number) => {
+                    const recipientEmail = r?.to || r?.email || "Unknown";
+                    const statusText = r?.status || "Delivered";
+                    return (
+                      <tr key={idx} className="hover:bg-gray-50/80 transition">
+                        <td className="p-3.5 font-bold text-[#111827]">{recipientEmail}</td>
+                        <td className="p-3.5">
+                          <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${
+                            statusText === "Opened" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
+                            statusText === "Clicked" ? "bg-amber-50 text-amber-700 border-amber-200" :
+                            statusText === "Bounced" ? "bg-red-50 text-red-700 border-red-200" :
+                            "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          }`}>
+                            ● {statusText}
+                          </span>
+                        </td>
+                        <td className="p-3.5 font-semibold text-gray-700 truncate max-w-xs">{r?.subject || "testing feature"}</td>
+                        <td className="p-3.5 text-gray-500 font-semibold">{r?.sent || "2h ago"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             ) : (
