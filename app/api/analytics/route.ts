@@ -253,31 +253,42 @@ export async function GET(req: NextRequest) {
 
     // 8. EXACT Resend-Style Emails Table (Columns: To, Status, Subject, Sent)
     const recipientMap = new Map();
-    userContacts.forEach((ct) => {
-      const ctEvents = realEvents.filter((e) => e.recipient.toLowerCase() === ct.email.toLowerCase());
-      const hasClicked = ctEvents.some((e) => e.eventType === "CLICKED");
-      const hasOpened = ctEvents.some((e) => e.eventType === "OPENED");
-      const hasBounced = ctEvents.some((e) => e.eventType === "BOUNCED");
 
-      let status = "Delivered";
-      if (hasBounced) status = "Bounced";
-      else if (hasClicked) status = "Clicked";
-      else if (hasOpened) status = "Opened";
-      else if (sent > 0) status = "Delivered";
+    // Populate from real webhook events first so incoming test webhooks appear instantly
+    realEvents.forEach((e) => {
+      const emailLower = (e.recipient || "").toLowerCase();
+      if (!emailLower) return;
 
-      // Subject from campaign
-      const matchingCampaign = targetCampaigns.find((c) => c.contactList?.name) || targetCampaigns[0];
+      const existing = recipientMap.get(emailLower);
+      const matchingCampaign = targetCampaigns.find((c) => c.id === e.campaignId) || targetCampaigns[0];
       const subject = matchingCampaign?.subject || matchingCampaign?.campaignName || "testing feature";
 
-      // Latest timestamp
-      const latestEventTime = ctEvents.length > 0 ? ctEvents[0].createdAt : (matchingCampaign?.createdAt || now);
+      let status = existing?.status || "Delivered";
+      if (e.eventType === "BOUNCED") status = "Bounced";
+      else if (e.eventType === "CLICKED") status = "Clicked";
+      else if (e.eventType === "OPENED" && status !== "Clicked") status = "Opened";
+      else if (e.eventType === "DELIVERED" && status !== "Clicked" && status !== "Opened") status = "Delivered";
 
-      recipientMap.set(ct.email.toLowerCase(), {
-        to: ct.email,
+      recipientMap.set(emailLower, {
+        to: e.recipient,
         status,
         subject,
-        sent: getRelativeTime(latestEventTime),
+        sent: getRelativeTime(e.createdAt),
       });
+    });
+
+    // Populate remaining contacts
+    userContacts.forEach((ct) => {
+      const emailLower = ct.email.toLowerCase();
+      if (!recipientMap.has(emailLower)) {
+        const matchingCampaign = targetCampaigns.find((c) => c.contactList?.name) || targetCampaigns[0];
+        recipientMap.set(emailLower, {
+          to: ct.email,
+          status: sent > 0 ? "Delivered" : "Queued",
+          subject: matchingCampaign?.subject || matchingCampaign?.campaignName || "testing feature",
+          sent: matchingCampaign ? getRelativeTime(matchingCampaign.createdAt) : "Just now",
+        });
+      }
     });
 
     const recipientsTable = Array.from(recipientMap.values());
