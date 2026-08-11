@@ -37,11 +37,16 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
+      const fontWeight = s.fontWeight || '800';
+      const fontStyle = s.fontStyle || 'normal';
+      const textDecoration = s.textDecoration || 'none';
+      const lineHeight = s.lineHeight || '1.2';
+
       return `
 <table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#111827'};">
   <tr>
-    <td align="${s.align || 'center'}" style="padding:${s.paddingTop || '48px'} 24px ${s.paddingBottom || '48px'} 24px; text-align:${s.align || 'center'};">
-      <h1 style="color:${s.textColor || '#FFFFFF'}; font-size:32px; font-weight:800; margin:0 0 16px 0; line-height:1.2;">${p.title}</h1>
+    <td align="${s.align || 'center'}" style="padding:${s.paddingTop || '48px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '48px'} ${s.paddingLeft || '24px'}; text-align:${s.align || 'center'};">
+      <h1 style="color:${s.textColor || '#FFFFFF'}; font-size:${s.fontSize || '32px'}; font-weight:${fontWeight}; font-style:${fontStyle}; text-decoration:${textDecoration}; margin:0 0 16px 0; line-height:${lineHeight};">${p.title}</h1>
       <p style="color:#D1D5DB; font-size:16px; margin:0 0 28px 0; max-width:520px; line-height:1.5;">${p.subtitle}</p>
       <a href="${p.buttonHref}" style="display:inline-block; background-color:#4F46E5; color:#FFFFFF; padding:14px 28px; border-radius:8px; font-weight:700; text-decoration:none; font-size:15px;">${p.buttonText}</a>
     </td>
@@ -86,11 +91,15 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
         const sep = finalHref.includes('?') ? '&' : '?';
         finalHref += `${sep}utm_source=${encodeURIComponent(p.utmSource)}&utm_medium=${encodeURIComponent(p.utmMedium || 'email')}&utm_campaign=${encodeURIComponent(p.utmCampaign || 'campaign')}`;
       }
+      const fontWeight = s.fontWeight || '700';
+      const fontStyle = s.fontStyle || 'normal';
+      const textDecoration = s.textDecoration || 'none';
+
       return `
 <table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
   <tr>
-    <td align="${s.align || 'center'}" style="padding: 12px 0;">
-      <a href="${finalHref}" style="display:inline-block; background-color:${s.backgroundColor || '#4F46E5'}; color:${s.textColor || '#FFFFFF'}; padding:${s.paddingTop || '12px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '12px'} ${s.paddingLeft || '24px'}; border-radius:${s.borderRadius || '8px'}; font-weight:700; text-decoration:none; font-size:15px;">${p.text}</a>
+    <td align="${s.align || 'center'}" style="padding: ${s.marginTop || '12px'} 0 ${s.marginBottom || '12px'} 0;">
+      <a href="${finalHref}" style="display:inline-block; background-color:${s.backgroundColor || '#4F46E5'}; color:${s.textColor || '#FFFFFF'}; padding:${s.paddingTop || '12px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '12px'} ${s.paddingLeft || '24px'}; border-radius:${s.borderRadius || '8px'}; font-weight:${fontWeight}; font-style:${fontStyle}; text-decoration:${textDecoration}; font-size:${s.fontSize || '15px'};">${p.text}</a>
     </td>
   </tr>
 </table>`;
@@ -122,10 +131,13 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const p = node.props || {};
       const s = node.style || {};
       const imgTag = `<img src="${p.src}" alt="${p.alt || ''}" width="${p.width || '560'}" style="max-width:100%; height:auto; display:block; border-radius:${s.borderRadius || '12px'}; border:0;" />`;
+      const paddingTop = s.paddingTop || '8px';
+      const paddingBottom = s.paddingBottom || '8px';
+
       if (p.href) {
-        return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}"><a href="${p.href}">${imgTag}</a></td></tr></table>`;
+        return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}" style="padding:${paddingTop} 0 ${paddingBottom} 0;"><a href="${p.href}">${imgTag}</a></td></tr></table>`;
       }
-      return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}">${imgTag}</td></tr></table>`;
+      return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}" style="padding:${paddingTop} 0 ${paddingBottom} 0;">${imgTag}</td></tr></table>`;
     },
     healthCheck: (node) => {
       const warnings: string[] = [];
@@ -158,7 +170,16 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
-      return `<h2 data-node-id="${node.id}" style="color:${s.textColor || '#111827'}; font-size:${s.fontSize || '24px'}; font-weight:${s.fontWeight || '700'}; text-align:${s.align || 'left'}; margin:16px 0 8px 0; line-height:1.3;">${p.content}</h2>`;
+      const fontWeight = s.fontWeight || '700';
+      const fontStyle = s.fontStyle || 'normal';
+      const textDecoration = s.textDecoration || 'none';
+      const lineHeight = s.lineHeight || '1.3';
+      const marginTop = s.marginTop || '16px';
+      const marginBottom = s.marginBottom || '8px';
+      const paddingTop = s.paddingTop || '0px';
+      const paddingBottom = s.paddingBottom || '0px';
+
+      return `<h2 data-node-id="${node.id}" style="color:${s.textColor || '#111827'}; font-size:${s.fontSize || '24px'}; font-weight:${fontWeight}; font-style:${fontStyle}; text-decoration:${textDecoration}; text-align:${s.align || 'left'}; margin:${marginTop} 0 ${marginBottom} 0; padding:${paddingTop} 0 ${paddingBottom} 0; line-height:${lineHeight};">${p.content}</h2>`;
     },
   },
 
@@ -185,7 +206,16 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
-      return `<p data-node-id="${node.id}" style="color:${s.textColor || '#374151'}; font-size:${s.fontSize || '15px'}; line-height:${s.lineHeight || '1.6'}; text-align:${s.align || 'left'}; margin:8px 0 16px 0;">${p.content}</p>`;
+      const fontWeight = s.fontWeight || 'normal';
+      const fontStyle = s.fontStyle || 'normal';
+      const textDecoration = s.textDecoration || 'none';
+      const lineHeight = s.lineHeight || '1.6';
+      const marginTop = s.marginTop || '8px';
+      const marginBottom = s.marginBottom || '16px';
+      const paddingTop = s.paddingTop || '0px';
+      const paddingBottom = s.paddingBottom || '0px';
+
+      return `<p data-node-id="${node.id}" style="color:${s.textColor || '#374151'}; font-size:${s.fontSize || '15px'}; font-weight:${fontWeight}; font-style:${fontStyle}; text-decoration:${textDecoration}; line-height:${lineHeight}; text-align:${s.align || 'left'}; margin:${marginTop} 0 ${marginBottom} 0; padding:${paddingTop} 0 ${paddingBottom} 0;">${p.content}</p>`;
     },
   },
 
@@ -248,9 +278,9 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const p = node.props || {};
       const s = node.style || {};
       return `
-<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'}; border-radius:${s.borderRadius || '16px'}; overflow:hidden; margin:16px 0;">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'}; border-radius:${s.borderRadius || '16px'}; overflow:hidden; margin:${s.marginTop || '16px'} 0 ${s.marginBottom || '16px'} 0;">
   <tr>
-    <td align="center" style="padding:20px;">
+    <td align="center" style="padding:${s.paddingTop || '20px'} 20px ${s.paddingBottom || '20px'} 20px;">
       <img src="${p.image}" alt="${p.title}" width="280" style="max-width:100%; height:auto; border-radius:12px; display:block;" />
       <h3 style="color:#111827; font-size:18px; font-weight:700; margin:16px 0 4px 0;">${p.title}</h3>
       <p style="color:#4F46E5; font-size:16px; font-weight:800; margin:0 0 16px 0;">${p.price}</p>
@@ -281,10 +311,11 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       align: 'center',
     },
     renderHtml: (node) => {
+      const s = node.style || {};
       return `
 <table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
   <tr>
-    <td align="center" style="padding: 16px 0;">
+    <td align="center" style="padding: ${s.paddingTop || '16px'} 0 ${s.paddingBottom || '16px'} 0;">
       <a href="https://twitter.com" style="color:#6B7280; text-decoration:none; margin:0 8px; font-size:13px; font-weight:600;">Twitter</a>
       <a href="https://linkedin.com" style="color:#6B7280; text-decoration:none; margin:0 8px; font-size:13px; font-weight:600;">LinkedIn</a>
       <a href="https://github.com" style="color:#6B7280; text-decoration:none; margin:0 8px; font-size:13px; font-weight:600;">GitHub</a>
@@ -312,7 +343,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     },
     renderHtml: (node) => {
       const s = node.style || {};
-      return `<hr data-node-id="${node.id}" style="border:0; border-top:1px solid ${s.color || '#E5E7EB'}; margin:${s.margin || '24px'} 0;" />`;
+      return `<hr data-node-id="${node.id}" style="border:0; border-top:1px solid ${s.color || '#E5E7EB'}; margin:${s.marginTop || '24px'} 0 ${s.marginBottom || '24px'} 0;" />`;
     },
   },
 
@@ -343,7 +374,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       return `
 <table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'};">
   <tr>
-    <td align="center" style="padding:32px 24px; color:${s.textColor || '#9CA3AF'}; font-size:12px; line-height:1.5;">
+    <td align="center" style="padding:${s.paddingTop || '32px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '32px'} ${s.paddingLeft || '24px'}; color:${s.textColor || '#9CA3AF'}; font-size:12px; line-height:${s.lineHeight || '1.5'};">
       <p style="margin:0 0 8px 0; font-weight:600; color:#6B7280;">© ${year} ${p.companyName || 'BulkyMailer'}. All rights reserved.</p>
       <p style="margin:0 0 12px 0;">${p.address || ''}</p>
       <p style="margin:0;"><a href="${p.unsubscribeUrl || '{{unsubscribeUrl}}'}" style="color:#6366F1; text-decoration:underline;">Unsubscribe from this mailing list</a></p>

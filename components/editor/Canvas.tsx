@@ -165,8 +165,75 @@ export function Canvas({
               className="w-6 h-6 rounded cursor-pointer border border-gray-200"
               title="Text Color"
             />
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] font-bold text-xs">B</button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] italic text-xs">I</button>
+            <button
+              onClick={() => {
+                const isBold = selectedNode.style?.fontWeight === '700' || selectedNode.style?.fontWeight === 'bold'
+                onUpdateStyle(selectedNode.id, 'fontWeight', isBold ? '400' : '700')
+              }}
+              className={`p-1.5 rounded font-bold text-xs transition ${
+                selectedNode.style?.fontWeight === '700' || selectedNode.style?.fontWeight === 'bold'
+                  ? 'bg-indigo-100 text-indigo-700 font-extrabold'
+                  : 'hover:bg-gray-100 text-[#111827]'
+              }`}
+              title="Bold (B)"
+            >
+              B
+            </button>
+            <button
+              onClick={() => {
+                const isItalic = selectedNode.style?.fontStyle === 'italic'
+                onUpdateStyle(selectedNode.id, 'fontStyle', isItalic ? 'normal' : 'italic')
+              }}
+              className={`p-1.5 rounded italic text-xs transition ${
+                selectedNode.style?.fontStyle === 'italic'
+                  ? 'bg-indigo-100 text-indigo-700 font-bold'
+                  : 'hover:bg-gray-100 text-[#111827]'
+              }`}
+              title="Italic (I)"
+            >
+              I
+            </button>
+            <button
+              onClick={() => {
+                const isUnderline = selectedNode.style?.textDecoration === 'underline'
+                onUpdateStyle(selectedNode.id, 'textDecoration', isUnderline ? 'none' : 'underline')
+              }}
+              className={`p-1.5 rounded underline text-xs transition ${
+                selectedNode.style?.textDecoration === 'underline'
+                  ? 'bg-indigo-100 text-indigo-700 font-bold'
+                  : 'hover:bg-gray-100 text-[#111827]'
+              }`}
+              title="Underline (U)"
+            >
+              U
+            </button>
+
+            {/* Font Size Selector */}
+            <select
+              value={selectedNode.style?.fontSize || '15px'}
+              onChange={(e) => onUpdateStyle(selectedNode.id, 'fontSize', e.target.value)}
+              className="text-[11px] px-1.5 py-1 bg-gray-50 border border-gray-200 rounded font-semibold text-[#111827]"
+              title="Font Size"
+            >
+              {['12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((sz) => (
+                <option key={sz} value={sz}>{sz}</option>
+              ))}
+            </select>
+
+            {/* Line Spacing Selector */}
+            <select
+              value={selectedNode.style?.lineHeight || '1.6'}
+              onChange={(e) => onUpdateStyle(selectedNode.id, 'lineHeight', e.target.value)}
+              className="text-[11px] px-1.5 py-1 bg-gray-50 border border-gray-200 rounded font-semibold text-[#111827]"
+              title="Line Spacing (Line Height)"
+            >
+              <option value="1.2">1.2 (Tight)</option>
+              <option value="1.4">1.4 (Normal)</option>
+              <option value="1.6">1.6 (Relaxed)</option>
+              <option value="1.8">1.8 (Loose)</option>
+              <option value="2.0">2.0 (Double)</option>
+            </select>
+
             <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'left')} title="Align Left"><AlignLeft className="w-3.5 h-3.5" /></button>
             <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'center')} title="Align Center"><AlignCenter className="w-3.5 h-3.5" /></button>
             <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'right')} title="Align Right"><AlignRight className="w-3.5 h-3.5" /></button>

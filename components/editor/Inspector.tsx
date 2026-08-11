@@ -420,29 +420,125 @@ export function Inspector({
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                {/* Rich Text & Line Height Controls */}
+                <div className="space-y-3 pt-2">
                   <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Font Size</label>
-                    <input
-                      type="text"
-                      value={style.fontSize || '16px'}
-                      disabled={isLocked}
-                      onChange={(e) => onUpdateStyle(selectedNode.id, 'fontSize', e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827]"
-                    />
+                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Text Style</label>
+                    <div className="flex items-center gap-1.5 bg-gray-50 p-1 rounded-xl border border-gray-200">
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const isBold = style.fontWeight === '700' || style.fontWeight === 'bold'
+                          onUpdateStyle(selectedNode.id, 'fontWeight', isBold ? '400' : '700')
+                        }}
+                        className={`flex-1 py-1 text-xs font-extrabold rounded-lg transition ${
+                          style.fontWeight === '700' || style.fontWeight === 'bold'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        B
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const isItalic = style.fontStyle === 'italic'
+                          onUpdateStyle(selectedNode.id, 'fontStyle', isItalic ? 'normal' : 'italic')
+                        }}
+                        className={`flex-1 py-1 text-xs italic font-bold rounded-lg transition ${
+                          style.fontStyle === 'italic'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        I
+                      </button>
+                      <button
+                        type="button"
+                        disabled={isLocked}
+                        onClick={() => {
+                          const isUnderline = style.textDecoration === 'underline'
+                          onUpdateStyle(selectedNode.id, 'textDecoration', isUnderline ? 'none' : 'underline')
+                        }}
+                        className={`flex-1 py-1 text-xs underline font-bold rounded-lg transition ${
+                          style.textDecoration === 'underline'
+                            ? 'bg-purple-600 text-white shadow-2xs'
+                            : 'hover:bg-gray-200 text-gray-700'
+                        }`}
+                      >
+                        U
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Alignment</label>
-                    <select
-                      value={style.align || 'left'}
-                      disabled={isLocked}
-                      onChange={(e) => onUpdateStyle(selectedNode.id, 'align', e.target.value)}
-                      className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827]"
-                    >
-                      <option value="left">Left</option>
-                      <option value="center">Center</option>
-                      <option value="right">Right</option>
-                    </select>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Font Size</label>
+                      <select
+                        value={style.fontSize || '15px'}
+                        disabled={isLocked}
+                        onChange={(e) => onUpdateStyle(selectedNode.id, 'fontSize', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] font-semibold"
+                      >
+                        {['12px', '14px', '15px', '16px', '18px', '20px', '24px', '28px', '32px'].map((sz) => (
+                          <option key={sz} value={sz}>{sz}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Line Spacing</label>
+                      <select
+                        value={style.lineHeight || '1.6'}
+                        disabled={isLocked}
+                        onChange={(e) => onUpdateStyle(selectedNode.id, 'lineHeight', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] font-semibold"
+                      >
+                        <option value="1.2">1.2 (Tight)</option>
+                        <option value="1.4">1.4 (Normal)</option>
+                        <option value="1.6">1.6 (Relaxed)</option>
+                        <option value="1.8">1.8 (Loose)</option>
+                        <option value="2.0">2.0 (Double)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Text Color</label>
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="color"
+                          value={style.textColor || '#111827'}
+                          disabled={isLocked}
+                          onChange={(e) => onUpdateStyle(selectedNode.id, 'textColor', e.target.value)}
+                          className="w-7 h-7 rounded-lg cursor-pointer border border-gray-200"
+                        />
+                        <input
+                          type="text"
+                          value={style.textColor || '#111827'}
+                          disabled={isLocked}
+                          onChange={(e) => onUpdateStyle(selectedNode.id, 'textColor', e.target.value)}
+                          className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg font-mono text-[11px]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Alignment</label>
+                      <select
+                        value={style.align || 'left'}
+                        disabled={isLocked}
+                        onChange={(e) => onUpdateStyle(selectedNode.id, 'align', e.target.value)}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-[#111827] font-semibold"
+                      >
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -484,8 +580,75 @@ export function Inspector({
               </div>
             )}
 
-            {/* General Background & Alignment */}
-            <div className="pt-3 border-t border-gray-100 space-y-3">
+            {/* General Padding & Margin Spacing Accordion */}
+            <div className="pt-3 border-t border-gray-100 space-y-4">
+              <label className="block text-[11px] font-bold text-purple-700 uppercase tracking-wider">
+                📐 Padding & Margin Spacing
+              </label>
+
+              {/* Padding Inputs */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Top Padding</label>
+                  <select
+                    value={style.paddingTop || '12px'}
+                    disabled={isLocked}
+                    onChange={(e) => onUpdateStyle(selectedNode.id, 'paddingTop', e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
+                  >
+                    {['0px', '4px', '8px', '12px', '16px', '24px', '32px', '48px', '64px'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Bottom Padding</label>
+                  <select
+                    value={style.paddingBottom || '12px'}
+                    disabled={isLocked}
+                    onChange={(e) => onUpdateStyle(selectedNode.id, 'paddingBottom', e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
+                  >
+                    {['0px', '4px', '8px', '12px', '16px', '24px', '32px', '48px', '64px'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Margin Inputs */}
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Top Margin</label>
+                  <select
+                    value={style.marginTop || '8px'}
+                    disabled={isLocked}
+                    onChange={(e) => onUpdateStyle(selectedNode.id, 'marginTop', e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
+                  >
+                    {['0px', '4px', '8px', '12px', '16px', '24px', '32px', '48px'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-semibold text-gray-500 uppercase mb-1">Bottom Margin</label>
+                  <select
+                    value={style.marginBottom || '16px'}
+                    disabled={isLocked}
+                    onChange={(e) => onUpdateStyle(selectedNode.id, 'marginBottom', e.target.value)}
+                    className="w-full px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
+                  >
+                    {['0px', '4px', '8px', '12px', '16px', '24px', '32px', '48px'].map((v) => (
+                      <option key={v} value={v}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Background Color */}
               <div>
                 <label className="block text-[11px] font-bold text-gray-500 uppercase mb-1">Background Color</label>
                 <div className="flex items-center gap-2">
