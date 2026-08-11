@@ -111,6 +111,132 @@ function ImportModal({ listId, onClose, onImported }: {
   const [result, setResult] = useState<{ imported: number; duplicates: number } | null>(null);
   const [error, setError] = useState("");
 
+  const [importSource, setImportSource] = useState<'local' | 'drive'>('local');
+  const [driveState, setDriveState] = useState<'idle' | 'initializing' | 'authenticating' | 'picking' | 'downloading'>('idle');
+
+  useEffect(() => {
+    if (importSource === 'drive' && !(window as any).google) {
+      setDriveState('initializing');
+      
+      const loadScript = (src: string) => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.async = true;
+        script.defer = true;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+
+      Promise.all([
+        loadScript('https://apis.google.com/js/api.js'),
+        loadScript('https://accounts.google.com/gsi/client')
+      ]).then(() => {
+        (window as any).gapi.load('picker', { callback: () => {
+          setDriveState('idle');
+        }});
+      }).catch(() => {
+        setError("Failed to load Google Drive scripts.");
+        setDriveState('idle');
+      });
+    }
+  }, [importSource]);
+
+  const handleDriveAuthAndPick = () => {
+    setError("");
+    if (!(window as any).google || !(window as any).google.accounts || !(window as any).gapi.picker) {
+      setError("Google Drive is still loading or failed to load.");
+      return;
+    }
+
+    setDriveState('authenticating');
+    const client = (window as any).google.accounts.oauth2.initTokenClient({
+      client_id: process.env.NEXT_PUBLIC_GOOGLE_DRIVE_CLIENT_ID,
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      callback: (tokenResponse: any) => {
+        if (tokenResponse && tokenResponse.access_token) {
+          showPicker(tokenResponse.access_token);
+        } else {
+          setError("Failed to authenticate with Google Drive.");
+          setDriveState('idle');
+        }
+      },
+      error_callback: (err: any) => {
+        if (err?.type === 'popup_closed' || err?.type === 'popup_failed_to_open') {
+          // user intentionally cancelled, don't show error toast
+        } else {
+          setError("Authentication failed.");
+        }
+        setDriveState('idle');
+      }
+    });
+
+    client.requestAccessToken();
+  };
+
+  const showPicker = (accessToken: string) => {
+    setDriveState('picking');
+    const view = new (window as any).google.picker.DocsView((window as any).google.picker.ViewId.DOCS);
+    view.setMimeTypes('text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    
+    const picker = new (window as any).google.picker.PickerBuilder()
+      .addView(view)
+      .setOAuthToken(accessToken)
+      .setDeveloperKey(process.env.NEXT_PUBLIC_GOOGLE_DRIVE_API_KEY)
+      .setAppId(process.env.NEXT_PUBLIC_GOOGLE_DRIVE_APP_ID)
+      .setCallback((data: any) => {
+        if (data.action === (window as any).google.picker.Action.PICKED) {
+          const doc = data.docs[0];
+          downloadDriveFile(doc, accessToken);
+        } else if (data.action === (window as any).google.picker.Action.CANCEL) {
+          setDriveState('idle');
+        }
+      })
+      .build();
+    picker.setVisible(true);
+  };
+
+  const downloadDriveFile = async (doc: any, accessToken: string) => {
+    setDriveState('downloading');
+    try {
+      const fn = doc.name.toLowerCase();
+      if (!(fn.endsWith('.csv') || fn.endsWith('.xlsx') || fn.endsWith('.xls'))) {
+        setError("Unsupported file format. Please select a CSV or Excel (.xlsx) file.");
+        setDriveState('idle');
+        return;
+      }
+      if (doc.sizeBytes && parseInt(doc.sizeBytes) > 10 * 1024 * 1024) {
+         setError("File is too large. Max size is 10MB.");
+         setDriveState('idle');
+         return;
+      }
+      
+      const res = await fetch(`https://www.googleapis.com/drive/v3/files/${doc.id}?alt=media`, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error(`Failed to download file (status ${res.status})`);
+      }
+      
+      const blob = await res.blob();
+      if (blob.size === 0) {
+        setError("The selected file is empty.");
+        setDriveState('idle');
+        return;
+      }
+      
+      const downloadedFile = new File([blob], doc.name, { type: doc.mimeType });
+      setFile(downloadedFile);
+      setDriveState('idle');
+    } catch (err: any) {
+      setError(err.message || "Failed to download from Google Drive.");
+      setDriveState('idle');
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -196,34 +322,37 @@ function ImportModal({ listId, onClose, onImported }: {
             </div>
           )}
 
-          {/* Interactive Drag & Drop File Upload Zone */}
-          <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
-              isDragging
-                ? "border-indigo-600 bg-indigo-50/80 scale-[1.01]"
-                : file
-                ? "border-emerald-400 bg-emerald-50/50"
-                : "border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
-            }`}
-          >
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-            />
-            {file ? (
-              <div className="space-y-2">
-                <FileCheck className="w-10 h-10 text-emerald-600 mx-auto" />
-                <p className="text-sm font-bold text-emerald-950">{file.name}</p>
-                <p className="text-xs text-emerald-700">{(file.size / 1024).toFixed(1)} KB — Ready to import</p>
-              </div>
-            ) : (
+          {!file && (
+            <div className="flex bg-gray-100 p-1 rounded-xl">
+              <button type="button" onClick={() => { setImportSource('local'); setError(""); }} className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition ${importSource === 'local' ? 'bg-white shadow text-[#111827]' : 'text-[#6B7280] hover:text-[#111827]'}`}>Upload from Device</button>
+              <button type="button" onClick={() => { setImportSource('drive'); setError(""); }} className={`flex-1 py-1.5 text-sm font-medium rounded-lg transition ${importSource === 'drive' ? 'bg-white shadow text-[#111827]' : 'text-[#6B7280] hover:text-[#111827]'}`}>Google Drive</button>
+            </div>
+          )}
+
+          {(!file && importSource === 'local') && (
+            <div
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => fileRef.current?.click()}
+              className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-all duration-200 ${
+                isDragging
+                  ? "border-indigo-600 bg-indigo-50/80 scale-[1.01]"
+                  : "border-gray-300 hover:border-indigo-400 hover:bg-gray-50"
+              }`}
+            >
+              <input
+                ref={fileRef}
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files.length > 0) {
+                    setFile(e.target.files[0]);
+                    setError("");
+                  }
+                }}
+              />
               <div className="space-y-2">
                 <Upload className={`w-10 h-10 mx-auto transition ${isDragging ? "text-indigo-600 animate-bounce" : "text-gray-400"}`} />
                 <p className="text-sm font-bold text-[#111827]">
@@ -234,8 +363,60 @@ function ImportModal({ listId, onClose, onImported }: {
                   Must include an <code className="text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded font-mono">email</code> column
                 </p>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {(!file && importSource === 'drive') && (
+            <div className="border-2 border-dashed border-gray-300 rounded-2xl p-8 text-center bg-gray-50 flex flex-col items-center justify-center min-h-[180px]">
+              {driveState === 'initializing' && (
+                <div className="space-y-3">
+                  <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto animate-spin" />
+                  <p className="text-sm font-medium text-gray-600">Initializing Google Drive...</p>
+                </div>
+              )}
+              {driveState === 'idle' && (
+                <div className="space-y-4">
+                  <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center mx-auto">
+                    <svg className="w-6 h-6" viewBox="0 0 87.3 126.7" xmlns="http://www.w3.org/2000/svg"><path d="M58 126.7L14.4 51.4 28.9 26.2l43.6 75.3-14.5 25.2z" fill="#0066da"/><path d="M58 126.7H29L0 76.5l14.4-25.1 29 50.1 14.6 25.2z" fill="#00ac47"/><path d="M72.9 101.5L29 26.2 43.5 1l43.8 75.3-14.4 25.2z" fill="#ea4335"/><path d="M14.4 51.4L43.5 1h58.2L72.9 51.4H14.4z" fill="#00832d"/><path d="M72.9 51.4H14.4l14.5-25.2h58.6L72.9 51.4z" fill="#2684fc"/><path d="M43.5 1L14.4 51.4 0 26.2 29 1h14.5z" fill="#ffba00"/></svg>
+                  </div>
+                  <button onClick={handleDriveAuthAndPick} className="bg-white border border-gray-200 px-5 py-2.5 text-[#111827] text-sm font-semibold rounded-xl hover:bg-gray-50 transition shadow-sm">
+                    Connect Google Drive
+                  </button>
+                  <p className="text-[11px] text-gray-400">
+                    Supports .csv, .xls, and .xlsx files
+                  </p>
+                </div>
+              )}
+              {driveState === 'authenticating' && (
+                <div className="space-y-3">
+                  <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto animate-spin" />
+                  <p className="text-sm font-medium text-gray-600">Waiting for Google authorization...</p>
+                </div>
+              )}
+              {driveState === 'picking' && (
+                <div className="space-y-3">
+                  <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto animate-spin" />
+                  <p className="text-sm font-medium text-gray-600">Opening Google Picker...</p>
+                </div>
+              )}
+              {driveState === 'downloading' && (
+                <div className="space-y-3">
+                  <RefreshCw className="w-8 h-8 text-indigo-400 mx-auto animate-spin" />
+                  <p className="text-sm font-medium text-gray-600">Downloading file...</p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {file && (
+            <div className="border-2 border-dashed border-emerald-400 bg-emerald-50/50 rounded-2xl p-8 text-center transition-all duration-200">
+              <div className="space-y-2">
+                <FileCheck className="w-10 h-10 text-emerald-600 mx-auto" />
+                <p className="text-sm font-bold text-emerald-950">{file.name}</p>
+                <p className="text-xs text-emerald-700">{(file.size / 1024).toFixed(1)} KB — Ready to import</p>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3 pt-4 border-t border-gray-100">
             <button type="button" onClick={onClose}
