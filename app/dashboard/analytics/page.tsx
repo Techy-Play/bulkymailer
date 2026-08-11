@@ -403,26 +403,77 @@ export default function AnalyticsPage() {
         {/* TAB 5: 📈 PERFORMANCE GRAPHS */}
         {activeTab === "performance" && (
           <div className="space-y-6 animate-in fade-in">
+            {/* Chart 1: Campaign Timeline Performance */}
             <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-6">
-              <h3 className="text-base font-bold text-[#111827]">Opens & Clicks Over Time</h3>
-              <div className="h-[380px]">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-[#111827]">Campaign Performance Timeline</h3>
+                  <p className="text-xs text-[#6B7280] mt-0.5">Real delivery, open, and click metrics across your dispatched campaigns.</p>
+                </div>
+                <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-xl border border-indigo-100">
+                  {data?.campaigns?.length || 0} Campaign(s)
+                </span>
+              </div>
+              <div className="h-[340px]">
+                {data?.campaignPerformance?.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={data.campaignPerformance}>
+                      <defs>
+                        <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorDelivered" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+                          <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorOpens" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                        </linearGradient>
+                        <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
+                          <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748B' }} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
+                      <Tooltip />
+                      <Area type="monotone" dataKey="sent" stroke="#3B82F6" fillOpacity={1} fill="url(#colorSent)" name="Sent" />
+                      <Area type="monotone" dataKey="delivered" stroke="#10B981" fillOpacity={1} fill="url(#colorDelivered)" name="Delivered" />
+                      <Area type="monotone" dataKey="opens" stroke="#8B5CF6" fillOpacity={1} fill="url(#colorOpens)" name="Opens" />
+                      <Area type="monotone" dataKey="clicks" stroke="#F59E0B" fillOpacity={1} fill="url(#colorClicks)" name="Clicks" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-xs text-gray-400 border-2 border-dashed border-gray-100 rounded-xl bg-gray-50">
+                    No campaign performance data available yet. Dispatch a campaign to view analytics graphs.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Chart 2: Hourly Activity */}
+            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-6">
+              <div>
+                <h3 className="text-base font-bold text-[#111827]">Hourly Event Activity</h3>
+                <p className="text-xs text-[#6B7280] mt-0.5">Distribution of email opens and link clicks by hour of day.</p>
+              </div>
+              <div className="h-[280px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={data?.audience?.hourlyActivity || []}>
                     <defs>
-                      <linearGradient id="colorOpens" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
-                      </linearGradient>
-                      <linearGradient id="colorClicks" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.4}/>
-                        <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                      <linearGradient id="colorHourlyOpens" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="hour" tick={{ fontSize: 11, fill: '#64748B' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#64748B' }} />
                     <Tooltip />
-                    <Area type="monotone" dataKey="opens" stroke="#8B5CF6" fillOpacity={1} fill="url(#colorOpens)" name="Opens" />
+                    <Area type="monotone" dataKey="opens" stroke="#6366F1" fillOpacity={1} fill="url(#colorHourlyOpens)" name="Opens" />
                     <Area type="monotone" dataKey="clicks" stroke="#F59E0B" fillOpacity={1} fill="url(#colorClicks)" name="Clicks" />
                   </AreaChart>
                 </ResponsiveContainer>

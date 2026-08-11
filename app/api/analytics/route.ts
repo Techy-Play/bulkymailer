@@ -226,7 +226,17 @@ export async function GET(req: NextRequest) {
         }))
       : [];
 
-    // 8. Hourly Activity Timeline
+    // 8. Campaign Timeline Performance
+    const campaignPerformance = targetCampaigns.map((c) => ({
+      name: c.campaignName.length > 15 ? c.campaignName.substring(0, 15) + "..." : c.campaignName,
+      date: new Date(c.createdAt).toLocaleDateString([], { month: "short", day: "numeric" }),
+      sent: c.totalRecipients || 0,
+      delivered: c.successfulRecipients || Math.max(0, (c.totalRecipients || 0) - (c.failedRecipients || 0)),
+      opens: c.openedCount || 0,
+      clicks: c.clickedCount || 0,
+    })).reverse();
+
+    // 9. Hourly Activity Timeline
     const hours = ["8:00 AM", "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM", "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM", "5:00 PM"];
     const hourlyMap: Record<string, { opens: number; clicks: number }> = {};
     hours.forEach((h) => { hourlyMap[h] = { opens: 0, clicks: 0 }; });
@@ -318,6 +328,7 @@ export async function GET(req: NextRequest) {
       },
       bounceDetails,
       clickHeatmap,
+      campaignPerformance,
       audience: {
         deviceBreakdown,
         emailClientBreakdown,
