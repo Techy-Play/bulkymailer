@@ -2,6 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
+function getRelativeTime(dateInput: Date | string): string {
+  const date = new Date(dateInput);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (isNaN(diffInSeconds) || diffInSeconds < 0) return "Just now";
+  if (diffInSeconds < 60) return "Just now";
+  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser();
@@ -164,7 +177,7 @@ export async function GET(req: NextRequest) {
     const bounceRate = sent > 0 ? Number(((totalBounces / sent) * 100).toFixed(2)) : 0;
     const unsubscribeRate = delivered > 0 ? Number(((unsubscribes / delivered) * 100).toFixed(2)) : 0;
 
-    // 5. Generate Date Bucket Time-Series (Resend Metrics Chart)
+    // 5. Generate Date Bucket Time-Series
     const now = new Date();
     const timeSeriesMap: Record<
       string,
@@ -187,7 +200,6 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // Populate time-series with campaigns dispatched on dates
     targetCampaigns.forEach((c) => {
       const campaignDate = new Date(c.createdAt).toISOString().split("T")[0];
       if (timeSeriesMap[campaignDate]) {
@@ -200,7 +212,6 @@ export async function GET(req: NextRequest) {
       }
     });
 
-    // Populate time-series with real event logs
     realEvents.forEach((e) => {
       const eventDate = new Date(e.createdAt).toISOString().split("T")[0];
       if (timeSeriesMap[eventDate]) {
@@ -240,29 +251,32 @@ export async function GET(req: NextRequest) {
       url: d.url,
     }));
 
-    // 8. Recipient Activity Table
+    // 8. EXACT Resend-Style Emails Table (Columns: To, Status, Subject, Sent)
     const recipientMap = new Map();
     userContacts.forEach((ct) => {
-      const ctEvents = realEvents.filter((e) => e.recipient === ct.email);
+      const ctEvents = realEvents.filter((e) => e.recipient.toLowerCase() === ct.email.toLowerCase());
       const hasClicked = ctEvents.some((e) => e.eventType === "CLICKED");
       const hasOpened = ctEvents.some((e) => e.eventType === "OPENED");
       const hasBounced = ctEvents.some((e) => e.eventType === "BOUNCED");
 
-      let status = "Subscribed";
+      let status = "Delivered";
       if (hasBounced) status = "Bounced";
       else if (hasClicked) status = "Clicked";
       else if (hasOpened) status = "Opened";
       else if (sent > 0) status = "Delivered";
 
-      recipientMap.set(ct.email, {
-        email: ct.email,
+      // Subject from campaign
+      const matchingCampaign = targetCampaigns.find((c) => c.contactList?.name) || targetCampaigns[0];
+      const subject = matchingCampaign?.subject || matchingCampaign?.campaignName || "testing feature";
+
+      // Latest timestamp
+      const latestEventTime = ctEvents.length > 0 ? ctEvents[0].createdAt : (matchingCampaign?.createdAt || now);
+
+      recipientMap.set(ct.email.toLowerCase(), {
+        to: ct.email,
         status,
-        opens: ctEvents.filter((e) => e.eventType === "OPENED").length,
-        clicks: ctEvents.filter((e) => e.eventType === "CLICKED").length,
-        lastActivity:
-          ctEvents.length > 0
-            ? new Date(ctEvents[0].createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-            : "No activity yet",
+        subject,
+        sent: getRelativeTime(latestEventTime),
       });
     });
 
@@ -296,14 +310,6 @@ export async function GET(req: NextRequest) {
       timeSeries,
       bounceDetails,
       clickHeatmap,
-      activityFeed: realEvents.map((e) => ({
-        id: e.id,
-        recipient: e.recipient,
-        eventType: e.eventType,
-        bounceReason: e.bounceReason,
-        linkTag: e.linkTag,
-        createdAt: e.createdAt,
-      })),
       recipientsTable,
     });
   } catch (err) {

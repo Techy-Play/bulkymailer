@@ -444,23 +444,22 @@ export default function AnalyticsMetricsPage() {
             </div>
           </div>
 
-          {/* Data Table */}
+          {/* Data Table (Exact Resend Format: To, Status, Subject, Sent) */}
           <div className="overflow-x-auto border border-gray-200 rounded-2xl">
             {filteredRecipients.length > 0 ? (
               <table className="w-full text-left text-xs text-[#111827]">
                 <thead className="bg-gray-50 border-b border-gray-200 text-[#6B7280] font-semibold uppercase tracking-wider">
                   <tr>
-                    <th className="p-3.5">Recipient Email</th>
+                    <th className="p-3.5">To</th>
                     <th className="p-3.5">Status</th>
-                    <th className="p-3.5">Opens</th>
-                    <th className="p-3.5">Clicks</th>
-                    <th className="p-3.5">Last Activity</th>
+                    <th className="p-3.5">Subject</th>
+                    <th className="p-3.5">Sent</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100 font-medium">
                   {filteredRecipients.map((r: any, idx: number) => (
                     <tr key={idx} className="hover:bg-gray-50/80 transition">
-                      <td className="p-3.5 font-bold text-[#111827]">{r.email}</td>
+                      <td className="p-3.5 font-bold text-[#111827]">{r.to || r.email}</td>
                       <td className="p-3.5">
                         <span className={`px-2.5 py-1 text-[10px] font-bold rounded-full border ${
                           r.status === "Opened" ? "bg-indigo-50 text-indigo-700 border-indigo-200" :
@@ -471,9 +470,8 @@ export default function AnalyticsMetricsPage() {
                           ● {r.status}
                         </span>
                       </td>
-                      <td className="p-3.5 font-semibold text-gray-700">{r.opens}</td>
-                      <td className="p-3.5 font-semibold text-gray-700">{r.clicks}</td>
-                      <td className="p-3.5 text-gray-400">{r.lastActivity}</td>
+                      <td className="p-3.5 font-semibold text-gray-700 truncate max-w-xs">{r.subject || "testing feature"}</td>
+                      <td className="p-3.5 text-gray-500 font-semibold">{r.sent || "2h ago"}</td>
                     </tr>
                   ))}
                 </tbody>
