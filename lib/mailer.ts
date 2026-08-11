@@ -363,13 +363,14 @@ export async function sendEmail(
 
 export async function sendBulkEmailWithResend(
   emails: Array<{ to: string; subject: string; html: string }>,
-  fromOverride?: string | null
+  fromOverride?: string | null,
+  campaignId?: string
 ) {
   const fromHeader = getFromHeader(fromOverride);
 
   if (!resend) {
     for (const item of emails) {
-      await sendEmail(item.to, item.subject, item.html, false, fromOverride);
+      await sendEmail(item.to, item.subject, item.html, false, fromOverride, campaignId);
     }
     return;
   }
@@ -401,7 +402,9 @@ export async function sendBulkEmailWithResend(
         "List-Unsubscribe": `<${unsubscribeUrl}>`,
         "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
         "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
+        ...(campaignId ? { "X-Campaign-Id": campaignId } : {})
       },
+      ...(campaignId ? { tags: [{ name: "campaign_id", value: campaignId }] } : {})
     };
   });
 
