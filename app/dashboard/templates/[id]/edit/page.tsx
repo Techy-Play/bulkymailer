@@ -455,8 +455,13 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
     setSaving(true)
     try {
       const currentHtml = serializeJSONToEmailHTML(rootNode)
-      const success = await saveTemplateJSONToDatabase(templateId, rootNode, currentHtml, name, category)
-      if (success) {
+      const saveRes = await saveTemplateJSONToDatabase(templateId, rootNode, currentHtml, name, category)
+      if (saveRes.ok) {
+        if (saveRes.isForked && saveRes.templateId && saveRes.templateId !== templateId) {
+          setTemplateId(saveRes.templateId)
+          window.history.replaceState(null, '', `/dashboard/templates/${saveRes.templateId}/edit`)
+        }
+
         setSaved(true)
         setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
         setTimeout(() => setSaved(false), 2500)
@@ -472,7 +477,8 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
         setCurrentSnapshotId(newSnap.id)
 
         try {
-          await fetch(`/api/templates/${templateId}/versions`, {
+          const targetId = saveRes.templateId || templateId
+          await fetch(`/api/templates/${targetId}/versions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -611,12 +617,18 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
             type="text"
             value={name}
             onChange={e => setName(e.target.value)}
-            className="text-base font-bold text-[#111827] bg-transparent border-none outline-none focus:ring-2 focus:ring-indigo-400/30 rounded-lg px-2"
+            onBlur={() => handleSave()}
+            placeholder="Template Name..."
+            className="text-base font-bold text-[#111827] bg-transparent border border-transparent hover:border-gray-200 focus:border-indigo-400 focus:bg-white outline-none rounded-lg px-2 py-0.5 transition"
           />
           <select
             value={category}
-            onChange={e => setCategory(e.target.value)}
-            className="px-2.5 py-1 border border-gray-200 bg-gray-50 rounded-lg text-xs text-[#111827] focus:outline-none"
+            onChange={e => {
+              const newCategory = e.target.value;
+              setCategory(newCategory);
+              saveTemplateJSONToDatabase(templateId, rootNode, serializeJSONToEmailHTML(rootNode), name, newCategory);
+            }}
+            className="px-2.5 py-1 border border-gray-200 bg-gray-50 hover:bg-gray-100 rounded-lg text-xs font-semibold text-[#111827] focus:outline-none cursor-pointer"
           >
             <option value="GENERAL">General</option>
             <option value="NEWSLETTER">Newsletter</option>

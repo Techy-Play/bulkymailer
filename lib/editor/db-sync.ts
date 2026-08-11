@@ -1,14 +1,20 @@
 import { TemplateJSONNode } from './types';
 import { EditorEventBus } from './events';
 
+export interface SaveResult {
+  ok: boolean;
+  templateId?: string;
+  isForked?: boolean;
+}
+
 export async function saveTemplateJSONToDatabase(
   templateId: string,
   root: TemplateJSONNode,
   htmlContent: string,
   name?: string,
   category?: string
-): Promise<boolean> {
-  if (!templateId) return false;
+): Promise<SaveResult> {
+  if (!templateId) return { ok: false };
   try {
     const payload: Record<string, unknown> = {
       htmlContent,
@@ -24,14 +30,19 @@ export async function saveTemplateJSONToDatabase(
     });
 
     if (res.ok) {
+      const data = await res.json();
       EditorEventBus.emit('AutosaveQueued', {
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       });
-      return true;
+      return {
+        ok: true,
+        templateId: data.template?.id || templateId,
+        isForked: !!data.isForked,
+      };
     }
-    return false;
+    return { ok: false };
   } catch (err) {
     console.error('[db-sync] Failed to persist template JSON to database:', err);
-    return false;
+    return { ok: false };
   }
 }

@@ -31,16 +31,40 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
     const { id } = await params;
+    const body = await req.json();
+    const { name, category, htmlContent, description, previewText, isFavorite, jsonTree } = body;
 
-    // Only allow updating user's own templates (not system templates)
+    // Check if template exists
     const existing = await db.template.findFirst({
-      where: { id, userId }
+      where: {
+        id,
+        OR: [{ userId: null }, { userId }]
+      }
     });
 
-    if (!existing) return NextResponse.json({ error: "Template not found or cannot be edited" }, { status: 404 });
+    if (!existing) {
+      return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    }
 
-    const { name, category, htmlContent, description, previewText, isFavorite, jsonTree } = await req.json();
+    // If template belongs to another user or is a System Template (userId === null),
+    // automatically FORK it into the current user's library as a new template draft.
+    if (existing.userId !== userId) {
+      const forkedTemplate = await db.template.create({
+        data: {
+          userId,
+          name: name || `${existing.name} (My Copy)`,
+          category: category || existing.category || "GENERAL",
+          htmlContent: htmlContent !== undefined ? htmlContent : existing.htmlContent,
+          description: description !== undefined ? description : existing.description,
+          previewText: previewText !== undefined ? previewText : existing.previewText,
+          isFavorite: false,
+          jsonTree: jsonTree !== undefined ? jsonTree : existing.jsonTree,
+        }
+      });
+      return NextResponse.json({ template: forkedTemplate, isForked: true });
+    }
 
+    // Otherwise, update existing user-owned template
     const template = await db.template.update({
       where: { id },
       data: {
@@ -54,7 +78,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     });
 
-    return NextResponse.json({ template });
+    return NextResponse.json({ template, isForked: false });
   } catch (err) {
     console.error("[template_PUT]", err);
     return NextResponse.json({ error: "Failed to update template" }, { status: 500 });
