@@ -39,7 +39,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!existing) return NextResponse.json({ error: "Template not found or cannot be edited" }, { status: 404 });
 
-    const { name, category, htmlContent, description, previewText, isFavorite } = await req.json();
+    const { name, category, htmlContent, description, previewText, isFavorite, jsonTree } = await req.json();
 
     const template = await db.template.update({
       where: { id },
@@ -49,7 +49,8 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
         htmlContent: htmlContent !== undefined ? htmlContent : existing.htmlContent,
         description: description !== undefined ? description : existing.description,
         previewText: previewText !== undefined ? previewText : existing.previewText,
-        isFavorite: isFavorite !== undefined ? isFavorite : existing.isFavorite
+        isFavorite: isFavorite !== undefined ? isFavorite : existing.isFavorite,
+        jsonTree: jsonTree !== undefined ? jsonTree : existing.jsonTree
       }
     });
 

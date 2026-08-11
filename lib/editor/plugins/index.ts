@@ -38,7 +38,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const p = node.props || {};
       const s = node.style || {};
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#111827'};">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#111827'};">
   <tr>
     <td align="${s.align || 'center'}" style="padding:${s.paddingTop || '48px'} 24px ${s.paddingBottom || '48px'} 24px; text-align:${s.align || 'center'};">
       <h1 style="color:${s.textColor || '#FFFFFF'}; font-size:32px; font-weight:800; margin:0 0 16px 0; line-height:1.2;">${p.title}</h1>
@@ -87,7 +87,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
         finalHref += `${sep}utm_source=${encodeURIComponent(p.utmSource)}&utm_medium=${encodeURIComponent(p.utmMedium || 'email')}&utm_campaign=${encodeURIComponent(p.utmCampaign || 'campaign')}`;
       }
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
   <tr>
     <td align="${s.align || 'center'}" style="padding: 12px 0;">
       <a href="${finalHref}" style="display:inline-block; background-color:${s.backgroundColor || '#4F46E5'}; color:${s.textColor || '#FFFFFF'}; padding:${s.paddingTop || '12px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '12px'} ${s.paddingLeft || '24px'}; border-radius:${s.borderRadius || '8px'}; font-weight:700; text-decoration:none; font-size:15px;">${p.text}</a>
@@ -123,9 +123,9 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const s = node.style || {};
       const imgTag = `<img src="${p.src}" alt="${p.alt || ''}" width="${p.width || '560'}" style="max-width:100%; height:auto; display:block; border-radius:${s.borderRadius || '12px'}; border:0;" />`;
       if (p.href) {
-        return `<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}"><a href="${p.href}">${imgTag}</a></td></tr></table>`;
+        return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}"><a href="${p.href}">${imgTag}</a></td></tr></table>`;
       }
-      return `<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}">${imgTag}</td></tr></table>`;
+      return `<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td align="${s.align || 'center'}">${imgTag}</td></tr></table>`;
     },
     healthCheck: (node) => {
       const warnings: string[] = [];
@@ -158,7 +158,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
-      return `<h2 style="color:${s.textColor || '#111827'}; font-size:${s.fontSize || '24px'}; font-weight:${s.fontWeight || '700'}; text-align:${s.align || 'left'}; margin:16px 0 8px 0; line-height:1.3;">${p.content}</h2>`;
+      return `<h2 data-node-id="${node.id}" style="color:${s.textColor || '#111827'}; font-size:${s.fontSize || '24px'}; font-weight:${s.fontWeight || '700'}; text-align:${s.align || 'left'}; margin:16px 0 8px 0; line-height:1.3;">${p.content}</h2>`;
     },
   },
 
@@ -185,7 +185,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
-      return `<p style="color:${s.textColor || '#374151'}; font-size:${s.fontSize || '15px'}; line-height:${s.lineHeight || '1.6'}; text-align:${s.align || 'left'}; margin:8px 0 16px 0;">${p.content}</p>`;
+      return `<p data-node-id="${node.id}" style="color:${s.textColor || '#374151'}; font-size:${s.fontSize || '15px'}; line-height:${s.lineHeight || '1.6'}; text-align:${s.align || 'left'}; margin:8px 0 16px 0;">${p.content}</p>`;
     },
   },
 
@@ -212,7 +212,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const s = node.style || {};
       const innerHtml = node.children ? node.children.map(child => PLUGIN_REGISTRY[child.type]?.renderHtml(child) || '').join('') : '';
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#FFFFFF'};">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#FFFFFF'};">
   <tr>
     <td style="padding:${s.paddingTop || '24px'} ${s.paddingRight || '24px'} ${s.paddingBottom || '24px'} ${s.paddingLeft || '24px'};">
       ${innerHtml}
@@ -248,7 +248,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const p = node.props || {};
       const s = node.style || {};
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'}; border-radius:${s.borderRadius || '16px'}; overflow:hidden; margin:16px 0;">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'}; border-radius:${s.borderRadius || '16px'}; overflow:hidden; margin:16px 0;">
   <tr>
     <td align="center" style="padding:20px;">
       <img src="${p.image}" alt="${p.title}" width="280" style="max-width:100%; height:auto; border-radius:12px; display:block;" />
@@ -280,9 +280,9 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     defaultStyle: {
       align: 'center',
     },
-    renderHtml: () => {
+    renderHtml: (node) => {
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%">
   <tr>
     <td align="center" style="padding: 16px 0;">
       <a href="https://twitter.com" style="color:#6B7280; text-decoration:none; margin:0 8px; font-size:13px; font-weight:600;">Twitter</a>
@@ -312,7 +312,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     },
     renderHtml: (node) => {
       const s = node.style || {};
-      return `<hr style="border:0; border-top:1px solid ${s.color || '#E5E7EB'}; margin:${s.margin || '24px'} 0;" />`;
+      return `<hr data-node-id="${node.id}" style="border:0; border-top:1px solid ${s.color || '#E5E7EB'}; margin:${s.margin || '24px'} 0;" />`;
     },
   },
 
@@ -340,7 +340,7 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
       const p = node.props || {};
       const s = node.style || {};
       return `
-<table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'};">
+<table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'};">
   <tr>
     <td align="center" style="padding:32px 24px; color:${s.textColor || '#9CA3AF'}; font-size:12px; line-height:1.5;">
       <p style="margin:0 0 8px 0; font-weight:600; color:#6B7280;">${p.companyName}</p>

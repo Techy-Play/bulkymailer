@@ -100,8 +100,8 @@ export default function TemplatesPage() {
   const systemTemplates = filteredTemplates.filter(t => t.userId === null)
 
   const renderCard = (template: Template) => (
-    <div key={template.id} className="group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all overflow-hidden flex flex-col">
-      <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100" style={{ height: 140 }}>
+    <div key={template.id} className="group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col">
+      <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 140 }}>
         <iframe
           srcDoc={template.htmlContent}
           title={template.name}

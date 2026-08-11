@@ -22,6 +22,7 @@ import { Canvas } from '@/components/editor/Canvas'
 import { Inspector } from '@/components/editor/Inspector'
 import { Breadcrumb } from '@/components/editor/Breadcrumb'
 import { TimelineModal, TimelineSnapshot } from '@/components/editor/TimelineModal'
+import { VersionCompareModal } from '@/components/editor/VersionCompareModal'
 import { LoadingButton } from '@/components/ui/loading-button'
 
 export const dynamic = 'force-dynamic'
@@ -68,6 +69,8 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
   const [snapshots, setSnapshots] = useState<TimelineSnapshot[]>([])
   const [currentSnapshotId, setCurrentSnapshotId] = useState('')
   const [showTimelineModal, setShowTimelineModal] = useState(false)
+  const [showCompareModal, setShowCompareModal] = useState(false)
+  const [selectedCompareSnapshot, setSelectedCompareSnapshot] = useState<TimelineSnapshot | null>(null)
 
   // AI Design Studio Modal State
   const [showAiWorkspace, setShowAiWorkspace] = useState(false)
@@ -143,9 +146,28 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           name: 'Initial State',
           root: initialRoot,
+          htmlContent: initialHtml,
         }
         setSnapshots([initSnap])
         setCurrentSnapshotId(initSnap.id)
+
+        try {
+          const versionsRes = await fetch(`/api/templates/${id}/versions`)
+          if (versionsRes.ok) {
+            const versionsData = await versionsRes.json()
+            const dbSnapshots: TimelineSnapshot[] = versionsData.map((v: any) => ({
+              id: v.id,
+              timestamp: new Date(v.createdAt).toLocaleString(),
+              name: v.versionName || `Version ${v.version}`,
+              root: v.jsonTree ? (typeof v.jsonTree === 'string' ? JSON.parse(v.jsonTree) : v.jsonTree) : compileHTMLToNodeTree(v.htmlContent),
+              htmlContent: v.htmlContent,
+              version: v.version,
+            }))
+            setSnapshots(prev => [...dbSnapshots, ...prev])
+          }
+        } catch (err) {
+          console.error('Error fetching versions:', err)
+        }
       }
     } catch (e) {
       console.error(e)
@@ -423,13 +445,20 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
     setRootNode(cloned)
   }, [])
 
+  const handleHtmlChange = useCallback((newHtml: string) => {
+    setHtmlContent(newHtml)
+    const compiledRoot = compileHTMLToNodeTree(newHtml)
+    setRootNode(compiledRoot)
+    commandManagerRef.current.setRoot(compiledRoot)
+  }, [])
+
   // Save to DB
   async function handleSave() {
     if (!templateId) return
     setSaving(true)
     try {
       const currentHtml = serializeJSONToEmailHTML(rootNode)
-      const success = await saveTemplateJSONToDatabase(templateId, rootNode, currentHtml)
+      const success = await saveTemplateJSONToDatabase(templateId, rootNode, currentHtml, name, category)
       if (success) {
         setSaved(true)
         setLastSavedTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))
@@ -440,9 +469,24 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           name: `Manual Draft Save`,
           root: rootNode,
+          htmlContent: currentHtml,
         }
         setSnapshots(prev => [newSnap, ...prev])
         setCurrentSnapshotId(newSnap.id)
+
+        try {
+          await fetch(`/api/templates/${templateId}/versions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              versionName: `Manual Draft Save`,
+              htmlContent: currentHtml,
+              jsonTree: rootNode,
+            })
+          })
+        } catch (err) {
+          console.error('Error saving version:', err)
+        }
       }
     } catch (e) {
       console.error(e)
@@ -506,6 +550,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
           name: `AI: ${promptText.substring(0, 24)}...`,
           root: compiledRoot,
+          htmlContent: generatedHtml,
         }
         setSnapshots(prev => [aiSnap, ...prev])
         setCurrentSnapshotId(aiSnap.id)
@@ -767,6 +812,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
                 setAiPrompt(prompt)
                 setShowAiWorkspace(true)
               }}
+              onHtmlChange={handleHtmlChange}
             />
           )}
         </div>
@@ -883,10 +929,43 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           commandManagerRef.current.setRoot(snap.root)
           setRootNode(snap.root)
           setCurrentSnapshotId(snap.id)
-          const compiledHtml = serializeJSONToEmailHTML(snap.root)
+          const compiledHtml = snap.htmlContent || serializeJSONToEmailHTML(snap.root)
           setHtmlContent(compiledHtml)
+          if (editorRef.current) {
+            editorRef.current.setValue(compiledHtml)
+          }
+        }}
+        onCompareSnapshot={(snap) => {
+          setSelectedCompareSnapshot(snap)
+          setShowCompareModal(true)
         }}
       />
+
+      {/* Compare Modal */}
+      {showCompareModal && selectedCompareSnapshot && (
+        <VersionCompareModal
+          currentHtml={htmlContent || serializeJSONToEmailHTML(rootNode)}
+          currentVersion={snapshots.length}
+          selectedHtml={selectedCompareSnapshot.htmlContent || serializeJSONToEmailHTML(selectedCompareSnapshot.root)}
+          selectedVersion={selectedCompareSnapshot.version || 0}
+          selectedName={selectedCompareSnapshot.name}
+          selectedTimestamp={selectedCompareSnapshot.timestamp}
+          onRestore={() => {
+            commandManagerRef.current.setRoot(selectedCompareSnapshot.root)
+            setRootNode(selectedCompareSnapshot.root)
+            setCurrentSnapshotId(selectedCompareSnapshot.id)
+            const compiledHtml = selectedCompareSnapshot.htmlContent || serializeJSONToEmailHTML(selectedCompareSnapshot.root)
+            setHtmlContent(compiledHtml)
+            if (editorRef.current) {
+              editorRef.current.setValue(compiledHtml)
+            }
+          }}
+          onClose={() => {
+            setShowCompareModal(false)
+            setSelectedCompareSnapshot(null)
+          }}
+        />
+      )}
 
       {/* Advanced Test Email Modal */}
       {showTestEmailModal && (

@@ -2,13 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { EventType, BounceType } from "@/app/generated/prisma/enums";
 
+import { Webhook } from "svix";
+
 export async function POST(req: NextRequest) {
   try {
-    const payload = await req.json();
+    const rawBody = await req.text();
+    const svix_id = req.headers.get("svix-id");
+    const svix_timestamp = req.headers.get("svix-timestamp");
+    const svix_signature = req.headers.get("svix-signature");
+
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      return NextResponse.json({ error: "Missing svix headers" }, { status: 400 });
+    }
+
+    const secret = process.env.RESEND_WEBHOOK_SECRET || "whsec_HdYwxS5lpzUv5dg7jKjDtxbe9kWuDbNF";
+    const wh = new Webhook(secret);
+
+    let payload: any;
+    try {
+      payload = wh.verify(rawBody, {
+        "svix-id": svix_id,
+        "svix-timestamp": svix_timestamp,
+        "svix-signature": svix_signature,
+      });
+    } catch (err) {
+      return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+    }
+
     const { type, data } = payload || {};
 
     if (!type || !data) {
       return NextResponse.json({ error: "Invalid webhook payload" }, { status: 400 });
+    }
+
+    if (type === "contact.created") {
+      console.log("[webhook] contact.created", data);
+      return NextResponse.json({ success: true, message: "Contact created logged" });
+    }
+
+    if (type === "contact.deleted") {
+      console.log("[webhook] contact.deleted", data);
+      return NextResponse.json({ success: true, message: "Contact deleted logged" });
     }
 
     const recipient = data.to?.[0] || data.email || data.recipient;

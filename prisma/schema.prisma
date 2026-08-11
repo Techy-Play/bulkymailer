@@ -267,6 +267,7 @@ model Template {
   name        String
   category    TemplateCategory @default(GENERAL)
   htmlContent String           @db.Text
+  jsonTree    Json?
   
   description String?
   previewText String?          // Shown in inbox after subject
@@ -277,7 +278,30 @@ model Template {
   updatedAt   DateTime         @updatedAt
   
   campaigns   Campaign[]
+  versions    TemplateVersion[]
 }
+
+// ---------------------------------------------------------------------------
+// Template Version History
+// ---------------------------------------------------------------------------
+
+model TemplateVersion {
+  id          String   @id @default(cuid())
+  
+  templateId  String
+  template    Template @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  
+  version     Int
+  versionName String?
+  
+  htmlContent String   @db.Text
+  jsonTree    Json?
+  
+  createdAt   DateTime @default(now())
+
+  @@unique([templateId, version])
+}
+
 
 // ---------------------------------------------------------------------------
 // Campaign

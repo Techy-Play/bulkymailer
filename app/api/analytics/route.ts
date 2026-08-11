@@ -69,6 +69,11 @@ export async function GET(req: NextRequest) {
 
     // 3. Safely fetch real campaign events (handling dev hot-reloads)
     let realEvents: any[] = [];
+    
+    if (selectedCampaignId && !userCampaignIds.includes(selectedCampaignId)) {
+      return NextResponse.json({ error: "Unauthorized access to campaign" }, { status: 403 });
+    }
+
     try {
       if ((db as any).campaignEvent) {
         realEvents = await (db as any).campaignEvent.findMany({
@@ -151,8 +156,8 @@ export async function GET(req: NextRequest) {
     const openRecipients = new Set(realEvents.filter((e) => e.eventType === "OPENED").map((e) => e.recipient));
     const clickRecipients = new Set(realEvents.filter((e) => e.eventType === "CLICKED").map((e) => e.recipient));
 
-    const uniqueOpens = openRecipients.size || (opens > 0 ? Math.ceil(opens * 0.85) : 0);
-    const uniqueClicks = clickRecipients.size || (clicks > 0 ? Math.ceil(clicks * 0.80) : 0);
+    const uniqueOpens = openRecipients.size;
+    const uniqueClicks = clickRecipients.size;
     const totalBounces = hardBounces + softBounces;
 
     // Strict rates calculation (0 if no emails sent)

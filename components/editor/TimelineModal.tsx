@@ -9,6 +9,8 @@ export interface TimelineSnapshot {
   timestamp: string
   name: string
   root: TemplateJSONNode
+  htmlContent?: string
+  version?: number
 }
 
 interface TimelineModalProps {
@@ -17,6 +19,7 @@ interface TimelineModalProps {
   currentSnapshotId: string
   onClose: () => void
   onRestoreSnapshot: (snapshot: TimelineSnapshot) => void
+  onCompareSnapshot?: (snapshot: TimelineSnapshot) => void
 }
 
 export function TimelineModal({
@@ -25,6 +28,7 @@ export function TimelineModal({
   currentSnapshotId,
   onClose,
   onRestoreSnapshot,
+  onCompareSnapshot,
 }: TimelineModalProps) {
   if (!isOpen) return null
 
@@ -81,15 +85,28 @@ export function TimelineModal({
                       <Check className="w-3 h-3" /> Active
                     </span>
                   ) : (
-                    <button
-                      onClick={() => {
-                        onRestoreSnapshot(snap)
-                        onClose()
-                      }}
-                      className="px-3 py-1.5 bg-white hover:bg-purple-600 hover:text-white text-gray-700 border border-gray-200 text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" /> Restore
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {onCompareSnapshot && snap.htmlContent && (
+                        <button
+                          onClick={() => {
+                            onCompareSnapshot(snap)
+                            onClose()
+                          }}
+                          className="px-3 py-1.5 bg-white hover:bg-indigo-600 hover:text-white text-gray-700 border border-gray-200 text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1"
+                        >
+                          Compare
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          onRestoreSnapshot(snap)
+                          onClose()
+                        }}
+                        className="px-3 py-1.5 bg-white hover:bg-purple-600 hover:text-white text-gray-700 border border-gray-200 text-xs font-semibold rounded-xl transition shadow-2xs flex items-center gap-1"
+                      >
+                        <RotateCcw className="w-3.5 h-3.5" /> Restore
+                      </button>
+                    </div>
                   )}
                 </div>
               )

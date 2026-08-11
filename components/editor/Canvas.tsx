@@ -2,11 +2,11 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import {
-  Sparkles, GripVertical, ChevronUp, ChevronDown, Lock, Trash2, Copy, Eye,
-  Layout, Image as ImageIcon, MousePointer, Type, AlignLeft, Box, ShoppingBag, Share2, Minus, FileText, Plus
+  Sparkles, GripVertical, Lock, Trash2, Copy,
+  AlignLeft, AlignCenter, AlignRight, Circle, Square, Minus
 } from 'lucide-react'
-import { TemplateJSONNode, ComponentType } from '@/lib/editor/types'
-import { PLUGIN_REGISTRY } from '@/lib/editor/plugins'
+import { TemplateJSONNode } from '@/lib/editor/types'
+import { serializeJSONToEmailHTML } from '@/lib/editor/serializer'
 import { ContextMenu } from './ContextMenu'
 
 interface CanvasProps {
@@ -21,19 +21,7 @@ interface CanvasProps {
   onDeleteNode: (nodeId: string) => void
   onToggleLock: (nodeId: string) => void
   onAskAI: (node: TemplateJSONNode, prompt: string) => void
-}
-
-const BADGE_ICONS: Record<ComponentType, any> = {
-  hero: Layout,
-  button: MousePointer,
-  image: ImageIcon,
-  heading: Type,
-  text: AlignLeft,
-  container: Box,
-  product: ShoppingBag,
-  social: Share2,
-  divider: Minus,
-  footer: FileText,
+  onHtmlChange?: (html: string) => void
 }
 
 export function Canvas({
@@ -48,267 +36,171 @@ export function Canvas({
   onDeleteNode,
   onToggleLock,
   onAskAI,
+  onHtmlChange,
 }: CanvasProps) {
-  const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null)
-  const [editingTextNodeId, setEditingTextNodeId] = useState<string | null>(null)
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; node: TemplateJSONNode } | null>(null)
+  const iframeRef = useRef<HTMLIFrameElement>(null)
+  const editedHtmlRef = useRef<string>('')
+  
+  const [toolbarRect, setToolbarRect] = useState<DOMRect | null>(null)
+  
+  const selectedNode = selectedNodeId ? findNode(root, selectedNodeId) : null
+  const htmlContent = serializeJSONToEmailHTML(root)
 
-  // Image resizing drag state
-  const [resizingImageId, setResizingImageId] = useState<string | null>(null)
-  const [startWidth, setStartWidth] = useState(560)
-  const [startX, setStartX] = useState(0)
-
-  // Handle image handle drag
   useEffect(() => {
-    function handleMouseMove(e: MouseEvent) {
-      if (!resizingImageId) return
-      const diff = e.clientX - startX
-      const newWidth = Math.min(Math.max(startWidth + diff, 120), 580)
-      onUpdateProp(resizingImageId, 'width', String(Math.round(newWidth)))
-    }
+    const iframe = iframeRef.current
+    if (!iframe) return
 
-    function handleMouseUp() {
-      setResizingImageId(null)
-    }
+    const handleLoad = () => {
+      const doc = iframe.contentDocument
+      if (!doc) return
 
-    if (resizingImageId) {
-      window.addEventListener('mousemove', handleMouseMove)
-      window.addEventListener('mouseup', handleMouseUp)
-    }
+      doc.body.contentEditable = "true"
+      doc.designMode = "on"
 
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove)
-      window.removeEventListener('mouseup', handleMouseUp)
-    }
-  }, [resizingImageId, startX, startWidth, onUpdateProp])
+      doc.addEventListener('click', (e) => {
+        e.preventDefault()
+        const target = e.target as HTMLElement
+        const nodeEl = target.closest('[data-node-id]') as HTMLElement
+        if (nodeEl) {
+          const id = nodeEl.getAttribute('data-node-id')
+          if (id) {
+            onSelectNode(id)
+            const rect = nodeEl.getBoundingClientRect()
+            const iframeRect = iframe.getBoundingClientRect()
+            setToolbarRect(new DOMRect(
+              rect.left + iframeRect.left,
+              rect.top + iframeRect.top,
+              rect.width,
+              rect.height
+            ))
+          }
+        }
+      })
 
-  // Recursive Renderer Component for Node Graph
-  function renderNodeComponent(node: TemplateJSONNode, index: number, isTopLevel = false): React.ReactNode {
-    if (!node || node.visible === false) return null
-
-    const isSelected = selectedNodeId === node.id
-    const isHovered = hoveredNodeId === node.id && !isSelected
-    const isLocked = node.locked || false
-    const BadgeIcon = BADGE_ICONS[node.type] || Box
-
-    const p = node.props || {}
-    const s = node.style || {}
-
-    // Section header controls for top-level layout sections
-    const renderSectionHeader = () => (
-      <div className="absolute -top-7 left-0 right-0 h-7 bg-gray-900 text-white text-[10px] font-bold px-3 flex items-center justify-between z-30 rounded-t-xl opacity-0 group-hover:opacity-100 transition-opacity">
-        <div className="flex items-center gap-1.5">
-          <BadgeIcon className="w-3 h-3 text-purple-400" />
-          <span className="capitalize">{node.name || node.type}</span>
-          {isLocked && <Lock className="w-3 h-3 text-amber-400" />}
-        </div>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveNode(node.id, 'up') }}
-            className="p-1 hover:bg-gray-800 rounded"
-            title="Move Section Up"
-          >
-            <ChevronUp className="w-3 h-3" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onMoveNode(node.id, 'down') }}
-            className="p-1 hover:bg-gray-800 rounded"
-            title="Move Section Down"
-          >
-            <ChevronDown className="w-3 h-3" />
-          </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); onDuplicateNode(node.id) }}
-            className="p-1 hover:bg-gray-800 rounded"
-            title="Duplicate Section"
-          >
-            <Copy className="w-3 h-3" />
-          </button>
-          {!isLocked && (
-            <button
-              onClick={(e) => { e.stopPropagation(); onDeleteNode(node.id) }}
-              className="p-1 hover:bg-red-900 text-red-300 rounded"
-              title="Delete Section"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          )}
-        </div>
-      </div>
-    )
-
-    // Render individual nodes
-    let content: React.ReactNode = null
-
-    if (node.type === 'hero') {
-      content = (
-        <div
-          style={{ backgroundColor: s.backgroundColor || '#111827', color: s.textColor || '#FFFFFF', textAlign: s.align || 'center' }}
-          className="p-10 space-y-4"
-        >
-          {editingTextNodeId === `${node.id}-title` ? (
-            <input
-              type="text"
-              defaultValue={p.title}
-              autoFocus
-              onBlur={(e) => {
-                onUpdateProp(node.id, 'title', e.target.value)
-                setEditingTextNodeId(null)
-              }}
-              className="w-full text-2xl font-bold bg-white text-gray-900 px-2 py-1 rounded text-center"
-            />
-          ) : (
-            <h1
-              onDoubleClick={(e) => { e.stopPropagation(); if (!isLocked) setEditingTextNodeId(`${node.id}-title`) }}
-              className="text-2xl sm:text-3xl font-extrabold tracking-tight cursor-text"
-            >
-              {p.title}
-            </h1>
-          )}
-
-          <p className="text-sm opacity-90 max-w-md mx-auto">{p.subtitle}</p>
-
-          <div>
-            <span style={{ backgroundColor: '#4F46E5', color: '#FFFFFF' }} className="inline-block px-6 py-2.5 rounded-lg text-xs font-bold shadow-md">
-              {p.buttonText}
-            </span>
-          </div>
-        </div>
-      )
-    } else if (node.type === 'button') {
-      content = (
-        <div className="py-2 text-center">
-          <span
-            style={{
-              backgroundColor: s.backgroundColor || '#4F46E5',
-              color: s.textColor || '#FFFFFF',
-              borderRadius: s.borderRadius || '8px',
-              paddingTop: s.paddingTop || '10px',
-              paddingBottom: s.paddingBottom || '10px',
-              paddingLeft: s.paddingLeft || '24px',
-              paddingRight: s.paddingRight || '24px',
-            }}
-            className="inline-block text-xs font-bold shadow-sm"
-          >
-            {p.text}
-          </span>
-        </div>
-      )
-    } else if (node.type === 'image') {
-      const isCircle = p.shape === 'circle' || s.shape === 'circle' || s.borderRadius === '50%' || s.borderRadius === '9999px'
-      const isRounded = s.shape === 'rounded' || (!isCircle && (s.borderRadius || p.borderRadius))
-      const imgWidth = Number(p.width || (isCircle ? 140 : 560))
-      const imgHeight = Number(p.height || (isCircle ? 140 : 0))
-      const alignClass = (s.align || p.align) === 'left' ? 'text-left' : (s.align || p.align) === 'right' ? 'text-right' : 'text-center'
-      
-      const imgStyle: React.CSSProperties = {
-        width: isCircle ? `${imgHeight || imgWidth || 140}px` : `${imgWidth}px`,
-        height: isCircle ? `${imgHeight || imgWidth || 140}px` : imgHeight > 0 ? `${imgHeight}px` : 'auto',
-        borderRadius: isCircle ? '50%' : isRounded ? (s.borderRadius || '16px') : (s.borderRadius || '0px'),
-        objectFit: (s.objectFit || p.objectFit || (isCircle ? 'cover' : 'contain')) as any,
-        display: 'inline-block',
+      let debounceTimer: NodeJS.Timeout
+      doc.body.oninput = () => {
+        clearTimeout(debounceTimer)
+        const currentContent = doc.documentElement.outerHTML
+        editedHtmlRef.current = currentContent
+        debounceTimer = setTimeout(() => {
+          if (onHtmlChange) {
+            onHtmlChange(currentContent)
+          }
+        }, 1500)
       }
-
-      content = (
-        <div className={`py-2 relative ${alignClass} max-w-full`}>
-          <img
-            src={p.src}
-            alt={p.alt || ''}
-            style={imgStyle}
-            className="max-w-full block mx-auto shadow-xs transition-all"
-          />
-
-          {/* Corner Resize Handles for Image */}
-          {isSelected && !isLocked && (
-            <div
-              onMouseDown={(e) => {
-                e.stopPropagation()
-                setResizingImageId(node.id)
-                setStartX(e.clientX)
-                setStartWidth(imgWidth)
-              }}
-              className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-purple-600 border-2 border-white shadow-md cursor-col-resize z-40 hover:scale-125 transition-transform"
-              title="Drag to resize image width"
-            />
-          )}
-        </div>
-      )
-    } else if (node.type === 'heading') {
-      content = (
-        <h2 style={{ color: s.textColor || '#111827', fontSize: s.fontSize || '20px', textAlign: s.align || 'left' }} className="font-bold my-2">
-          {p.content}
-        </h2>
-      )
-    } else if (node.type === 'text') {
-      content = (
-        <p style={{ color: s.textColor || '#374151', fontSize: s.fontSize || '14px', textAlign: s.align || 'left' }} className="my-1.5 leading-relaxed">
-          {p.content}
-        </p>
-      )
-    } else if (node.type === 'product') {
-      content = (
-        <div style={{ backgroundColor: s.backgroundColor || '#F9FAFB', borderRadius: s.borderRadius || '16px' }} className="p-4 text-center my-3 border border-gray-200">
-          <img src={p.image} alt={p.title} className="w-48 h-36 object-cover rounded-xl mx-auto mb-3" />
-          <h3 className="font-bold text-sm text-gray-900">{p.title}</h3>
-          <p className="text-xs font-bold text-indigo-600 my-1">{p.price}</p>
-          <span className="inline-block px-4 py-1.5 bg-gray-900 text-white text-xs font-semibold rounded-lg">{p.buttonText}</span>
-        </div>
-      )
-    } else if (node.type === 'footer') {
-      content = (
-        <div style={{ backgroundColor: s.backgroundColor || '#F9FAFB' }} className="p-6 text-center text-xs text-gray-500 space-y-1">
-          <p className="font-bold text-gray-700">{p.companyName}</p>
-          <p>{p.address}</p>
-          <p className="text-indigo-600 underline">Unsubscribe from this mailing list</p>
-        </div>
-      )
-    } else if (node.type === 'container') {
-      content = (
-        <div style={{ backgroundColor: s.backgroundColor || '#FFFFFF' }} className="p-4">
-          {node.children && node.children.map((child, idx) => renderNodeComponent(child, idx, false))}
-        </div>
-      )
     }
 
-    return (
-      <div
-        key={node.id}
-        onClick={(e) => {
-          e.stopPropagation()
-          onSelectNode(node.id)
-        }}
-        onContextMenu={(e) => {
-          e.preventDefault()
-          e.stopPropagation()
-          onSelectNode(node.id)
-          setContextMenu({ x: e.clientX, y: e.clientY, node })
-        }}
-        onMouseEnter={(e) => {
-          e.stopPropagation()
-          setHoveredNodeId(node.id)
-        }}
-        onMouseLeave={() => setHoveredNodeId(null)}
-        className={`relative group transition-all duration-150 rounded-xl ${
-          isSelected
-            ? 'ring-2 ring-purple-600 ring-offset-2 shadow-sm'
-            : isHovered
-            ? 'ring-1 ring-purple-400/80 ring-offset-1'
-            : ''
-        }`}
-      >
-        {/* Top-Level Section Header */}
-        {isTopLevel && renderSectionHeader()}
+    iframe.addEventListener('load', handleLoad)
+    return () => iframe.removeEventListener('load', handleLoad)
+  }, [onSelectNode, onHtmlChange])
 
-        {/* Semantic Component Hover Badge */}
-        {(isSelected || isHovered) && (
-          <div className="absolute top-1 left-2 z-30 px-2 py-0.5 bg-purple-600 text-white text-[9px] font-bold rounded-md shadow flex items-center gap-1 pointer-events-none">
-            <BadgeIcon className="w-2.5 h-2.5" />
-            <span className="capitalize">{node.name || node.type}</span>
-            {isLocked && <Lock className="w-2.5 h-2.5 text-amber-300" />}
-          </div>
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setToolbarRect(null)
+      return
+    }
+    const iframe = iframeRef.current
+    if (!iframe || !iframe.contentDocument) return
+    const el = iframe.contentDocument.querySelector(`[data-node-id="${selectedNodeId}"]`)
+    if (el) {
+      const rect = el.getBoundingClientRect()
+      const iframeRect = iframe.getBoundingClientRect()
+      setToolbarRect(new DOMRect(
+        rect.left + iframeRect.left,
+        rect.top + iframeRect.top,
+        rect.width,
+        rect.height
+      ))
+    }
+  }, [selectedNodeId, htmlContent])
+
+  function findNode(n: TemplateJSONNode, id: string): TemplateJSONNode | null {
+    if (n.id === id) return n
+    if (n.children) {
+      for (const c of n.children) {
+        const found = findNode(c, id)
+        if (found) return found
+      }
+    }
+    return null
+  }
+
+  const renderToolbar = () => {
+    if (!selectedNode || !toolbarRect) return null
+    
+    return (
+      <div 
+        className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg flex items-center p-1 gap-1"
+        style={{
+          top: toolbarRect.top - 48,
+          left: toolbarRect.left,
+        }}
+      >
+        <div className="flex items-center gap-1 border-r border-gray-200 pr-1">
+          <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+        </div>
+        
+        {(selectedNode.type === 'heading' || selectedNode.type === 'text') && (
+          <>
+            <input 
+              type="color" 
+              value={selectedNode.style?.textColor || '#000000'}
+              onChange={(e) => onUpdateStyle(selectedNode.id, 'textColor', e.target.value)}
+              className="w-6 h-6 rounded cursor-pointer"
+            />
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] font-bold">B</button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] italic">I</button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'left')}><AlignLeft className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'center')}><AlignCenter className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'right')}><AlignRight className="w-4 h-4" /></button>
+          </>
+        )}
+        
+        {selectedNode.type === 'image' && (
+          <>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '9999px')}><Circle className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '16px')}><Square className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '0px')}><Minus className="w-4 h-4" /></button>
+          </>
         )}
 
-        {content}
+        {selectedNode.type === 'button' && (
+          <>
+            <input 
+              type="color" 
+              value={selectedNode.style?.backgroundColor || '#4F46E5'}
+              onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
+              className="w-6 h-6 rounded cursor-pointer"
+            />
+            <input 
+              type="text" 
+              placeholder="URL"
+              value={selectedNode.props?.href || ''}
+              onChange={(e) => onUpdateProp(selectedNode.id, 'href', e.target.value)}
+              className="text-xs p-1 border rounded w-24"
+            />
+          </>
+        )}
+
+        {selectedNode.type === 'container' && (
+          <>
+            <input 
+              type="color" 
+              value={selectedNode.style?.backgroundColor || '#ffffff'}
+              onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
+              className="w-6 h-6 rounded cursor-pointer"
+            />
+          </>
+        )}
+
+        <div className="flex items-center gap-1 border-l border-gray-200 pl-1">
+          <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onDuplicateNode(selectedNode.id)}>
+            <Copy className="w-4 h-4" />
+          </button>
+          <button className="p-1.5 hover:bg-red-50 text-red-600 rounded" onClick={() => onDeleteNode(selectedNode.id)}>
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     )
   }
@@ -317,12 +209,10 @@ export function Canvas({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC] overflow-auto p-6 items-center justify-center relative">
-      
-      {/* Canvas Viewport Frame */}
       {previewTab === 'desktop' ? (
-        <div className="w-full max-w-2xl bg-white rounded-2xl border border-gray-200 shadow-md p-6 min-h-[600px] my-auto space-y-2 relative flex flex-col">
+        <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-md min-h-[600px] overflow-hidden relative flex flex-col">
           {isCanvasEmpty ? (
-            <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-8 my-auto">
+            <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-8 m-4 my-auto">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
                 <Sparkles className="w-6 h-6" />
               </div>
@@ -332,19 +222,29 @@ export function Canvas({
               </p>
             </div>
           ) : (
-            root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))
+            <iframe
+              ref={iframeRef}
+              srcDoc={htmlContent}
+              className="w-full h-full border-0 outline-none"
+              title="Editor Canvas"
+            />
           )}
         </div>
       ) : previewTab === 'mobile' ? (
-        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-y-auto p-4 shrink-0 my-auto flex flex-col">
-          <div className="top-0 inset-x-0 h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto mb-4"></div>
+        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-y-auto p-0 shrink-0 my-auto flex flex-col">
+          <div className="absolute top-0 inset-x-0 h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto z-10"></div>
           {isCanvasEmpty ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 p-6 my-auto">
+            <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 p-6 my-auto m-4">
               <p className="text-xs font-bold text-[#111827]">Blank Page</p>
               <p className="text-[11px] text-[#6B7280] mt-1">Empty mobile view canvas</p>
             </div>
           ) : (
-            root.children && root.children.map((child, idx) => renderNodeComponent(child, idx, true))
+            <iframe
+              ref={iframeRef}
+              srcDoc={htmlContent}
+              className="w-full h-full border-0 outline-none pt-6"
+              title="Editor Canvas Mobile"
+            />
           )}
         </div>
       ) : (
@@ -364,19 +264,7 @@ export function Canvas({
         </div>
       )}
 
-      {/* Right-Click Context Menu Overlay */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          node={contextMenu.node}
-          onClose={() => setContextMenu(null)}
-          onDuplicate={onDuplicateNode}
-          onDelete={onDeleteNode}
-          onToggleLock={onToggleLock}
-          onAskAI={onAskAI}
-        />
-      )}
+      {renderToolbar()}
     </div>
   )
 }

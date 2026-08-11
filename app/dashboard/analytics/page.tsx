@@ -35,7 +35,7 @@ export default function AnalyticsPage() {
   const [data, setData] = useState<any>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [activeTab, setActiveTab] = useState<
-    "overview" | "deliverability" | "engagement" | "audience" | "performance" | "activity" | "ai"
+    "overview" | "deliverability" | "engagement" | "performance" | "activity"
   >("overview");
 
   const [recipientSearch, setRecipientSearch] = useState("");
@@ -167,10 +167,8 @@ export default function AnalyticsPage() {
             { id: "overview", label: "📊 Overview", icon: BarChart3 },
             { id: "deliverability", label: "📬 Deliverability", icon: ShieldCheck },
             { id: "engagement", label: "🖱️ Engagement & Heatmap", icon: MousePointer },
-            { id: "audience", label: "👥 Audience Analytics", icon: Smartphone },
             { id: "performance", label: "📈 Performance Graphs", icon: TrendingUp },
             { id: "activity", label: "📝 Real-time Feed & Recipient Log", icon: Clock },
-            { id: "ai", label: "🤖 AI Insights", icon: Sparkles },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -400,64 +398,7 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* TAB 4: 👥 AUDIENCE ANALYTICS */}
-        {activeTab === "audience" && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              
-              {/* Devices */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-4">
-                <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                  <Smartphone className="w-4 h-4 text-indigo-600" /> Devices Breakdown
-                </h3>
-                <div className="space-y-3">
-                  {data?.audience?.deviceBreakdown?.map((d: any, i: number) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl border border-gray-200">
-                      <span className="text-xs font-semibold text-[#111827]">{d.name}</span>
-                      <span className="text-xs font-bold text-indigo-600">{d.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
 
-              {/* Email Clients */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-4">
-                <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-purple-600" /> Email Clients Breakdown
-                </h3>
-                {data?.audience?.emailClientBreakdown?.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.audience.emailClientBreakdown.map((c: any, i: number) => (
-                      <div key={i} className="space-y-1">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-[#111827]">{c.name}</span>
-                          <span className="font-bold text-purple-700">{c.percentage}% ({c.count} opens)</span>
-                        </div>
-                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div className="h-full bg-purple-600 rounded-full" style={{ width: `${c.percentage}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-6 text-center text-xs text-gray-400">No client data logged yet.</div>
-                )}
-              </div>
-
-              {/* Peak Engagement Hours */}
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-2xs space-y-4">
-                <h3 className="text-sm font-bold text-[#111827] flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-emerald-600" /> Hourly Activity Timeline
-                </h3>
-                <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-xs space-y-2">
-                  <p className="font-bold text-emerald-900">⭐ Real-Time Hourly Distribution</p>
-                  <p className="text-emerald-800">Shows peak open times based on real subscriber event logs.</p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        )}
 
         {/* TAB 5: 📈 PERFORMANCE GRAPHS */}
         {activeTab === "performance" && (
@@ -579,31 +520,7 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* TAB 7: 🤖 AI INSIGHTS */}
-        {activeTab === "ai" && (
-          <div className="space-y-6 animate-in fade-in">
-            <div className="bg-gradient-to-br from-indigo-900 to-purple-900 text-white p-8 rounded-3xl shadow-xl space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-md">
-                  <Sparkles className="w-6 h-6 text-yellow-300" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">BulkyMailer AI Insights Engine</h3>
-                  <p className="text-xs text-indigo-200 mt-0.5">Automated recommendations and deliverability intelligence generated from your campaign data.</p>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {data?.aiInsights?.map((insight: any, idx: number) => (
-                  <div key={idx} className="p-5 bg-white/10 border border-white/10 rounded-2xl backdrop-blur-md space-y-2">
-                    <p className="text-xs font-bold text-yellow-300 uppercase tracking-wider">{insight.title}</p>
-                    <p className="text-sm text-white font-medium">{insight.text}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
 
       </div>
     </div>

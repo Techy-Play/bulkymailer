@@ -1,16 +1,26 @@
 import { TemplateJSONNode } from './types';
 import { EditorEventBus } from './events';
 
-export async function saveTemplateJSONToDatabase(templateId: string, root: TemplateJSONNode, htmlContent: string): Promise<boolean> {
+export async function saveTemplateJSONToDatabase(
+  templateId: string,
+  root: TemplateJSONNode,
+  htmlContent: string,
+  name?: string,
+  category?: string
+): Promise<boolean> {
   if (!templateId) return false;
   try {
+    const payload: Record<string, unknown> = {
+      htmlContent,
+      jsonTree: root,
+    };
+    if (name !== undefined) payload.name = name;
+    if (category !== undefined) payload.category = category;
+
     const res = await fetch(`/api/templates/${templateId}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        htmlContent,
-        jsonTree: root,
-      }),
+      body: JSON.stringify(payload),
     });
 
     if (res.ok) {
