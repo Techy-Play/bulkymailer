@@ -44,7 +44,7 @@ export function serializeJSONToEmailHTML(root: TemplateJSONNode): string {
     table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
     img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
     table { border-collapse: collapse !important; }
-    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     @media screen and (max-width: 600px) {
       .email-container { width: 100% !important; margin: auto !important; }
       .fluid { max-width: 100% !important; height: auto !important; margin-left: auto !important; margin-right: auto !important; }
@@ -52,14 +52,14 @@ export function serializeJSONToEmailHTML(root: TemplateJSONNode): string {
   </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #f8fafc;">
-  <center style="width: 100%; background-color: #f8fafc;">
+  <center style="width: 100%; background-color: #f8fafc; padding: 40px 16px;">
     <div style="max-width: 600px; margin: 0 auto;" class="email-container">
       <!--[if mso]>
       <table role="presentation" align="center" border="0" cellspacing="0" cellpadding="0" width="600">
       <tr>
       <td>
       <![endif]-->
-      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; margin: 20px auto; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
+      <table role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width: 600px; background-color: #ffffff; margin: 0 auto; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.01);">
         <tr>
           <td style="padding: 0;">
             ${bodyContent}

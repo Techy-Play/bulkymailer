@@ -730,6 +730,50 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
               </button>
             </div>
 
+            {/* Component & Merge Tag Quick Selectors */}
+            <div className="flex items-center gap-2">
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddComponent(e.target.value as any);
+                    e.target.value = '';
+                  }
+                }}
+                className="px-2.5 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-semibold text-[#111827] focus:ring-2 focus:ring-indigo-500/30 outline-none cursor-pointer"
+              >
+                <option value="">+ Add Component ▾</option>
+                <option value="hero">Hero Section</option>
+                <option value="heading">Section Heading</option>
+                <option value="text">Paragraph Text</option>
+                <option value="image">Image Banner</option>
+                <option value="button">CTA Button</option>
+                <option value="product">Product Card</option>
+                <option value="footer">Footer Section</option>
+              </select>
+
+              <select
+                onChange={(e) => {
+                  if (e.target.value && selectedNodeId) {
+                    const node = rootNode.children?.find((c) => c.id === selectedNodeId);
+                    if (node) {
+                      const currentVal = node.props?.content || node.props?.title || node.props?.text || '';
+                      const key = node.type === 'hero' ? 'title' : node.type === 'button' ? 'text' : 'content';
+                      handleUpdateProp(selectedNodeId, key, `${currentVal} ${e.target.value}`);
+                    }
+                    e.target.value = '';
+                  }
+                }}
+                className="px-2.5 py-1 bg-indigo-50 border border-indigo-200 rounded-lg text-xs font-bold text-indigo-700 focus:ring-2 focus:ring-indigo-500/30 outline-none cursor-pointer"
+              >
+                <option value="">+ Merge Tag ▾</option>
+                <option value="{{firstName}}">First Name (&#123;&#123;firstName&#125;&#125;)</option>
+                <option value="{{lastName}}">Last Name (&#123;&#123;lastName&#125;&#125;)</option>
+                <option value="{{email}}">Email (&#123;&#123;email&#125;&#125;)</option>
+                <option value="{{companyName}}">Company (&#123;&#123;companyName&#125;&#125;)</option>
+                <option value="{{unsubscribeUrl}}">Unsubscribe URL</option>
+              </select>
+            </div>
+
             {/* Device Tabs */}
             <div className="flex items-center gap-1 bg-gray-100 p-0.5 rounded-lg text-xs">
               <button
@@ -753,65 +797,22 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
             </div>
           </div>
 
-          {/* Canvas / Live HTML Preview Area */}
-          {viewMode === 'preview' ? (
-            <div className="flex-1 min-h-0 flex items-center justify-center bg-[#F0F2F5] p-4 overflow-auto">
-              {previewTab === 'desktop' ? (
-                <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-lg overflow-hidden">
-                  <iframe
-                    srcDoc={htmlContent || '<!DOCTYPE html><html><body style="padding:40px;text-align:center;color:#9ca3af;font-family:sans-serif;">No content yet. Use the AI Assistant or switch to Edit mode.</body></html>'}
-                    title="Live Preview"
-                    className="w-full h-full border-0"
-                    style={{ minHeight: 500 }}
-                  />
-                </div>
-              ) : previewTab === 'mobile' ? (
-                <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-hidden shrink-0">
-                  <div className="h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto" />
-                  <iframe
-                    srcDoc={htmlContent || '<!DOCTYPE html><html><body style="padding:40px;text-align:center;color:#9ca3af;font-family:sans-serif;">No content yet</body></html>'}
-                    title="Mobile Preview"
-                    className="w-full border-0"
-                    style={{ height: 'calc(100% - 20px)' }}
-                  />
-                </div>
-              ) : (
-                <div className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-md p-6 space-y-4">
-                  <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wide">Gmail Inbox Preview</h4>
-                  <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center shrink-0">B</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-sm text-[#111827]">BulkyMailer Campaign</span>
-                        <span className="text-xs text-[#6B7280]">Just now</span>
-                      </div>
-                      <p className="text-xs font-semibold text-[#111827] truncate">{name || 'Custom Email Subject'}</p>
-                      <p className="text-xs text-[#6B7280] truncate">Preview of your email template...</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Canvas
-              root={rootNode}
-              selectedNodeId={selectedNodeId}
-              previewTab={previewTab}
-              onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
-              onUpdateProp={handleUpdateProp}
-              onUpdateStyle={handleUpdateStyle}
-              onMoveNode={handleMoveNode}
-              onDuplicateNode={handleDuplicateNode}
-              onDeleteNode={handleDeleteNode}
-              onToggleLock={handleToggleLock}
-              onAskAI={(node, prompt) => {
-                setSelectedNodeId(node.id)
-                setAiPrompt(prompt)
-                setShowAiWorkspace(true)
-              }}
-              onHtmlChange={handleHtmlChange}
-            />
-          )}
+          {/* Unified Canvas (Both Edit & Preview use identical Canvas serializer render) */}
+          <Canvas
+            root={rootNode}
+            selectedNodeId={selectedNodeId}
+            previewTab={previewTab}
+            viewMode={viewMode}
+            onSelectNode={(nodeId) => setSelectedNodeId(nodeId)}
+            onUpdateProp={handleUpdateProp}
+            onUpdateStyle={handleUpdateStyle}
+            onMoveNode={handleMoveNode}
+            onDuplicateNode={handleDuplicateNode}
+            onDeleteNode={handleDeleteNode}
+            onToggleLock={handleToggleLock}
+            onAskAI={(node, prompt) => triggerAiGeneration(prompt)}
+            onHtmlChange={handleHtmlChange}
+          />
         </div>
 
         {/* Horizontal Resize Divider (Canvas ↔ Inspector) */}

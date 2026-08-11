@@ -2,17 +2,17 @@
 
 import React, { useState, useRef, useEffect } from 'react'
 import {
-  Sparkles, GripVertical, Lock, Trash2, Copy,
-  AlignLeft, AlignCenter, AlignRight, Circle, Square, Minus
+  Sparkles, GripVertical, Trash2, Copy,
+  AlignLeft, AlignCenter, AlignRight, Circle, Square, Minus, Edit3, Eye
 } from 'lucide-react'
 import { TemplateJSONNode } from '@/lib/editor/types'
 import { serializeJSONToEmailHTML } from '@/lib/editor/serializer'
-import { ContextMenu } from './ContextMenu'
 
 interface CanvasProps {
   root: TemplateJSONNode
   selectedNodeId: string | null
   previewTab: 'desktop' | 'mobile' | 'inbox'
+  viewMode?: 'edit' | 'preview'
   onSelectNode: (nodeId: string) => void
   onUpdateProp: (nodeId: string, propKey: string, value: any) => void
   onUpdateStyle: (nodeId: string, styleKey: string, value: any) => void
@@ -28,6 +28,7 @@ export function Canvas({
   root,
   selectedNodeId,
   previewTab,
+  viewMode = 'edit',
   onSelectNode,
   onUpdateProp,
   onUpdateStyle,
@@ -44,6 +45,8 @@ export function Canvas({
   const selectedNode = selectedNodeId ? findNode(root, selectedNodeId) : null
   const htmlContent = serializeJSONToEmailHTML(root)
 
+  const isEditMode = viewMode === 'edit'
+
   useEffect(() => {
     const iframe = iframeRef.current
     if (!iframe) return
@@ -52,10 +55,11 @@ export function Canvas({
       const doc = iframe.contentDocument
       if (!doc) return
 
-      // Enable text editing inside body while preserving structural elements
-      doc.body.contentEditable = "true"
+      // Configure edit mode behavior
+      doc.body.contentEditable = isEditMode ? "true" : "false"
 
       doc.addEventListener('click', (e) => {
+        if (!isEditMode) return;
         const target = e.target as HTMLElement
         const nodeEl = target.closest('[data-node-id]') as HTMLElement
         if (nodeEl) {
@@ -76,6 +80,7 @@ export function Canvas({
 
       let debounceTimer: NodeJS.Timeout
       doc.body.oninput = (e: Event) => {
+        if (!isEditMode) return;
         clearTimeout(debounceTimer)
         const target = e.target as HTMLElement
         const nodeEl = target?.closest('[data-node-id]') as HTMLElement
@@ -102,10 +107,10 @@ export function Canvas({
 
     iframe.addEventListener('load', handleLoad)
     return () => iframe.removeEventListener('load', handleLoad)
-  }, [root, onSelectNode, onUpdateProp])
+  }, [root, isEditMode, onSelectNode, onUpdateProp])
 
   useEffect(() => {
-    if (!selectedNodeId) {
+    if (!selectedNodeId || !isEditMode) {
       setToolbarRect(null)
       return
     }
@@ -122,7 +127,7 @@ export function Canvas({
         rect.height
       ))
     }
-  }, [selectedNodeId, htmlContent])
+  }, [selectedNodeId, htmlContent, isEditMode])
 
   function findNode(n: TemplateJSONNode, id: string): TemplateJSONNode | null {
     if (n.id === id) return n
@@ -136,18 +141,19 @@ export function Canvas({
   }
 
   const renderToolbar = () => {
-    if (!selectedNode || !toolbarRect) return null
+    if (!selectedNode || !toolbarRect || !isEditMode) return null
 
     return (
       <div
-        className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg flex items-center p-1 gap-1"
+        className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-xl flex items-center p-1.5 gap-1.5 animate-in fade-in duration-150"
         style={{
-          top: Math.max(16, toolbarRect.top - 48),
+          top: Math.max(16, toolbarRect.top - 52),
           left: Math.max(16, toolbarRect.left),
         }}
       >
-        <div className="flex items-center gap-1 border-r border-gray-200 pr-1">
+        <div className="flex items-center gap-1 border-r border-gray-200 pr-1.5">
           <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
+          <span className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider">{selectedNode.type}</span>
         </div>
 
         {(selectedNode.type === 'heading' || selectedNode.type === 'text' || selectedNode.type === 'hero') && (
@@ -156,21 +162,22 @@ export function Canvas({
               type="color"
               value={selectedNode.style?.textColor || '#000000'}
               onChange={(e) => onUpdateStyle(selectedNode.id, 'textColor', e.target.value)}
-              className="w-6 h-6 rounded cursor-pointer"
+              className="w-6 h-6 rounded cursor-pointer border border-gray-200"
+              title="Text Color"
             />
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] font-bold">B</button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] italic">I</button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'left')}><AlignLeft className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'center')}><AlignCenter className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'right')}><AlignRight className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] font-bold text-xs">B</button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827] italic text-xs">I</button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'left')} title="Align Left"><AlignLeft className="w-3.5 h-3.5" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'center')} title="Align Center"><AlignCenter className="w-3.5 h-3.5" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'right')} title="Align Right"><AlignRight className="w-3.5 h-3.5" /></button>
           </>
         )}
 
         {selectedNode.type === 'image' && (
           <>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '50%')} title="Circle ⭕"><Circle className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '16px')} title="Rounded ▢"><Square className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '0px')} title="Rectangle ▭"><Minus className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '50%')} title="Circle ⭕"><Circle className="w-3.5 h-3.5" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '16px')} title="Rounded ▢"><Square className="w-3.5 h-3.5" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '0px')} title="Rectangle ▭"><Minus className="w-3.5 h-3.5" /></button>
           </>
         )}
 
@@ -180,35 +187,25 @@ export function Canvas({
               type="color"
               value={selectedNode.style?.backgroundColor || '#4F46E5'}
               onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
-              className="w-6 h-6 rounded cursor-pointer"
+              className="w-6 h-6 rounded cursor-pointer border border-gray-200"
+              title="Button Color"
             />
             <input
               type="text"
-              placeholder="URL"
+              placeholder="Link URL"
               value={selectedNode.props?.href || ''}
               onChange={(e) => onUpdateProp(selectedNode.id, 'href', e.target.value)}
-              className="text-xs p-1 border rounded w-24"
+              className="text-[11px] p-1 border rounded w-28 text-[#111827]"
             />
           </>
         )}
 
-        {selectedNode.type === 'container' && (
-          <>
-            <input
-              type="color"
-              value={selectedNode.style?.backgroundColor || '#ffffff'}
-              onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
-              className="w-6 h-6 rounded cursor-pointer"
-            />
-          </>
-        )}
-
-        <div className="flex items-center gap-1 border-l border-gray-200 pl-1">
-          <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onDuplicateNode(selectedNode.id)}>
-            <Copy className="w-4 h-4" />
+        <div className="flex items-center gap-1 border-l border-gray-200 pl-1.5">
+          <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onDuplicateNode(selectedNode.id)} title="Duplicate">
+            <Copy className="w-3.5 h-3.5" />
           </button>
-          <button className="p-1.5 hover:bg-red-50 text-red-600 rounded" onClick={() => onDeleteNode(selectedNode.id)}>
-            <Trash2 className="w-4 h-4" />
+          <button className="p-1.5 hover:bg-red-50 text-red-600 rounded" onClick={() => onDeleteNode(selectedNode.id)} title="Delete">
+            <Trash2 className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
@@ -218,10 +215,11 @@ export function Canvas({
   const isCanvasEmpty = !root.children || root.children.length === 0
 
   return (
-    <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC] overflow-auto p-6 items-center justify-center relative">
+    <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC] overflow-auto p-6 sm:p-8 items-center justify-center relative">
       {renderToolbar()}
+      
       {previewTab === 'desktop' ? (
-        <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-md min-h-[600px] overflow-hidden relative flex flex-col">
+        <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-md min-h-[600px] overflow-hidden relative flex flex-col my-auto">
           {isCanvasEmpty ? (
             <div className="flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50/50 p-8 m-4 my-auto">
               <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
@@ -237,13 +235,13 @@ export function Canvas({
               ref={iframeRef}
               srcDoc={htmlContent}
               className="w-full h-full border-0 outline-none"
-              title="Editor Canvas"
+              title="Editor Canvas Desktop"
             />
           )}
         </div>
       ) : previewTab === 'mobile' ? (
-        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-y-auto p-0 shrink-0 my-auto flex flex-col">
-          <div className="absolute top-0 inset-x-0 h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto z-10"></div>
+        <div className="relative w-[375px] min-h-[680px] bg-white rounded-[2.5rem] border-[10px] border-gray-900 shadow-2xl overflow-hidden shrink-0 my-auto flex flex-col">
+          <div className="absolute top-0 inset-x-0 h-5 bg-gray-900 rounded-b-2xl w-32 mx-auto z-20 pointer-events-none"></div>
           {isCanvasEmpty ? (
             <div className="flex flex-col items-center justify-center py-16 text-center border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 p-6 my-auto m-4">
               <p className="text-xs font-bold text-[#111827]">Blank Page</p>
@@ -253,7 +251,7 @@ export function Canvas({
             <iframe
               ref={iframeRef}
               srcDoc={htmlContent}
-              className="w-full h-full border-0 outline-none pt-6"
+              className="w-full h-full border-0 outline-none pt-4"
               title="Editor Canvas Mobile"
             />
           )}
