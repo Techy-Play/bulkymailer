@@ -38,11 +38,20 @@ export default function TemplatesPage() {
 
   useEffect(() => {
     fetchTemplates()
-    
-    const handleClickOutside = () => setOpenMenuId(null)
-    document.addEventListener('click', handleClickOutside)
-    return () => document.removeEventListener('click', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (!openMenuId) return
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement
+      if (target.closest('[data-template-menu]')) return
+      setOpenMenuId(null)
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [openMenuId])
 
   async function fetchTemplates() {
     setLoading(true)
@@ -142,7 +151,7 @@ export default function TemplatesPage() {
               <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
               <p className="text-xs text-[#6B7280] mt-0.5">{template.category} · {relativeTime(template.createdAt)}</p>
             </div>
-            <div className="relative flex-shrink-0">
+            <div className="relative flex-shrink-0" data-template-menu>
               <button 
                 onClick={(e) => { 
                   e.stopPropagation(); 
