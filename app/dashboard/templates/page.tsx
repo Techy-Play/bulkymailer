@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { MoreHorizontal, Search, FileText, X } from 'lucide-react'
+import { MoreHorizontal, Search, FileText, X, Check, SearchX } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 
 interface Template {
   id: string
@@ -12,6 +13,7 @@ interface Template {
   userId: string | null
   createdAt: string
   updatedAt?: string
+  description?: string
 }
 
 function relativeTime(dateStr: string): string {
@@ -25,10 +27,13 @@ function relativeTime(dateStr: string): string {
 }
 
 export default function TemplatesPage() {
+  const router = useRouter()
   const [templates, setTemplates] = useState<Template[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [activeCategory, setActiveCategory] = useState<'ALL' | 'NEWSLETTER' | 'PROMOTIONAL' | 'PERSONALIZED' | 'GENERAL' | 'TRANSACTIONAL'>('ALL')
+  const [activeTab, setActiveTab] = useState<'MY_TEMPLATES' | 'PUBLIC'>('MY_TEMPLATES')
+  const [activeCategory, setActiveCategory] = useState<string>('ALL')
+  
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
@@ -74,7 +79,13 @@ export default function TemplatesPage() {
       const res = await fetch(`/api/templates/${id}/duplicate`, { method: 'POST' })
       if (res.ok) {
         const data = await res.json()
+        // Add the duplicate to templates
         setTemplates(prev => [data.template, ...prev])
+        // If it was a public template, redirect to editor
+        const sourceTemplate = templates.find(t => t.id === id)
+        if (sourceTemplate?.userId === null) {
+          router.push(`/dashboard/templates/${data.template.id}/edit`)
+        }
       }
     } catch (e) {
       console.error(e)
@@ -97,25 +108,43 @@ export default function TemplatesPage() {
     }
   }
 
-  const filteredTemplates = templates.filter(t => {
-    const matchesSearch = t.name.toLowerCase().includes(search.toLowerCase())
+  const categories = ['ALL', 'NEWSLETTER', 'PROMOTIONAL', 'PERSONALIZED', 'GENERAL', 'TRANSACTIONAL', 'WELCOME', 'PRODUCT', 'EVENT', 'E_COMMERCE', 'SECURITY', 'ENGAGEMENT', 'SEASONAL']
+
+  // Split into personal and public
+  const currentViewTemplates = activeTab === 'MY_TEMPLATES' 
+    ? templates.filter(t => t.userId !== null) 
+    : templates.filter(t => t.userId === null)
+
+  const filteredTemplates = currentViewTemplates.filter(t => {
+    const s = search.toLowerCase()
+    const matchesSearch = t.name.toLowerCase().includes(s) || (t.description?.toLowerCase().includes(s)) || (t.category.toLowerCase().includes(s))
     const matchesCategory = activeCategory === 'ALL' || t.category === activeCategory
     return matchesSearch && matchesCategory
   })
 
-  const categories = ['ALL', 'NEWSLETTER', 'PROMOTIONAL', 'PERSONALIZED', 'GENERAL', 'TRANSACTIONAL'] as const
-
-  const myTemplates = filteredTemplates.filter(t => t.userId !== null)
-  const systemTemplates = filteredTemplates.filter(t => t.userId === null)
+  // Feature templates: push featured ones to top in Public Templates tab
+  const featuredNames = ['Product Launch', 'Weekly Newsletter', 'Welcome Email', 'Black Friday Sale', 'Order Confirmation']
+  const sortedTemplates = activeTab === 'PUBLIC' 
+    ? [...filteredTemplates].sort((a, b) => {
+        const aFeatured = featuredNames.includes(a.name)
+        const bFeatured = featuredNames.includes(b.name)
+        if (aFeatured && !bFeatured) return -1
+        if (!aFeatured && bFeatured) return 1
+        return 0
+      })
+    : filteredTemplates
 
   const renderCard = (template: Template) => {
     const isMenuOpen = openMenuId === template.id
+    const isPublic = template.userId === null
+    const isFeatured = isPublic && featuredNames.includes(template.name)
+
     return (
       <div 
         key={template.id} 
         className={`group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col relative ${isMenuOpen ? 'z-30 ring-2 ring-indigo-500/20' : 'z-0'}`}
       >
-        <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 140 }}>
+        <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 160 }}>
           <iframe
             srcDoc={template.htmlContent}
             title={template.name}
@@ -123,7 +152,7 @@ export default function TemplatesPage() {
             style={{
               width: '800px',
               height: '640px',
-              transform: 'scale(0.225)',
+              transform: 'scale(0.25)',
               transformOrigin: 'top left',
               pointerEvents: 'none',
               border: 'none',
@@ -133,15 +162,17 @@ export default function TemplatesPage() {
           {/* Hover overlay */}
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
             <button onClick={() => setPreviewTemplate(template)} className="px-3 py-1.5 bg-white text-[#111827] text-xs font-semibold rounded-lg shadow hover:bg-gray-50 transition">Preview</button>
-            {template.userId !== null ? (
+            {!isPublic ? (
               <Link href={`/dashboard/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit</Link>
             ) : (
-              <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Use</Link>
+              <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition disabled:opacity-50">
+                {duplicating === template.id ? 'Copying...' : 'Use Template'}
+              </button>
             )}
           </div>
 
-          {template.userId === null && (
-            <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/70 backdrop-blur-sm text-white text-[10px] font-bold rounded-full">System</span>
+          {isFeatured && (
+            <span className="absolute top-2 right-2 px-2 py-0.5 bg-yellow-400 text-yellow-900 text-[10px] font-bold rounded-full shadow-sm">Featured</span>
           )}
         </div>
 
@@ -149,8 +180,12 @@ export default function TemplatesPage() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
-              <p className="text-xs text-[#6B7280] mt-0.5">{template.category} · {relativeTime(template.createdAt)}</p>
+              <p className="text-xs text-[#6B7280] mt-0.5">{template.category.replace('_', ' ')} · {isPublic ? 'System' : relativeTime(template.createdAt)}</p>
+              {template.description && (
+                <p className="text-xs text-[#6B7280] mt-1 truncate">{template.description}</p>
+              )}
             </div>
+            
             <div className="relative flex-shrink-0" data-template-menu>
               <button 
                 onClick={(e) => { 
@@ -168,22 +203,18 @@ export default function TemplatesPage() {
                   className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100" 
                   onClick={e => e.stopPropagation()}
                 >
-                  <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="block w-full text-left px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50/60 transition">
-                    Create Campaign
-                  </Link>
-                  <div className="border-t border-gray-100 my-1"></div>
                   <button onClick={() => { setPreviewTemplate(template); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
                     Preview
                   </button>
-                  {template.userId !== null && (
+                  {!isPublic && (
                     <Link href={`/dashboard/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
                       Edit Template
                     </Link>
                   )}
                   <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 disabled:opacity-50 transition">
-                    {duplicating === template.id ? 'Duplicating...' : 'Duplicate'}
+                    {duplicating === template.id ? 'Processing...' : isPublic ? 'Use Template' : 'Duplicate'}
                   </button>
-                  {template.userId !== null && (
+                  {!isPublic && (
                     <>
                       <div className="border-t border-gray-100 my-1"></div>
                       <button onClick={() => { setConfirmDeleteId(template.id); setConfirmInput(''); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition">
@@ -208,6 +239,22 @@ export default function TemplatesPage() {
         <Link href="/dashboard/templates/new" className="px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
           + New Template
         </Link>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
+        <button
+          onClick={() => { setActiveTab('MY_TEMPLATES'); setActiveCategory('ALL'); }}
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'MY_TEMPLATES' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+        >
+          My Templates
+        </button>
+        <button
+          onClick={() => { setActiveTab('PUBLIC'); setActiveCategory('ALL'); }}
+          className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'PUBLIC' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
+        >
+          Public Templates
+        </button>
       </div>
 
       {/* Toolbar */}
@@ -236,7 +283,7 @@ export default function TemplatesPage() {
                   : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111827]'
               }`}
             >
-              {cat === 'ALL' ? 'All' : cat.charAt(0) + cat.slice(1).toLowerCase()}
+              {cat === 'ALL' ? 'All' : cat.replace('_', ' ').charAt(0) + cat.replace('_', ' ').slice(1).toLowerCase()}
             </button>
           ))}
         </div>
@@ -244,41 +291,33 @@ export default function TemplatesPage() {
 
       {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="bg-white border border-gray-200 rounded-2xl animate-pulse h-56"></div>
           ))}
         </div>
-      ) : filteredTemplates.length > 0 ? (
-        <div className="space-y-10">
-          {myTemplates.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#111827] px-1">My Templates</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {myTemplates.map(renderCard)}
-              </div>
-            </div>
-          )}
-
-          {systemTemplates.length > 0 && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#111827] px-1">Default Templates</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-                {systemTemplates.map(renderCard)}
-              </div>
-            </div>
-          )}
+      ) : sortedTemplates.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          {sortedTemplates.map(renderCard)}
         </div>
       ) : (
         <div className="py-24 flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl shadow-sm">
           <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
-            <FileText className="w-8 h-8 text-[#6B7280]" />
+            {search || activeCategory !== 'ALL' ? <SearchX className="w-8 h-8 text-[#6B7280]" /> : <FileText className="w-8 h-8 text-[#6B7280]" />}
           </div>
-          <h3 className="text-lg font-bold text-[#111827] mb-2">No templates yet</h3>
-          <p className="text-sm text-[#6B7280] mb-6">Create your first email template to get started</p>
-          <Link href="/dashboard/templates/new" className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
-            Create your first template
-          </Link>
+          <h3 className="text-lg font-bold text-[#111827] mb-2">No templates found</h3>
+          <p className="text-sm text-[#6B7280] mb-6">
+            {search || activeCategory !== 'ALL' 
+              ? 'Try adjusting your filters or search term' 
+              : activeTab === 'MY_TEMPLATES' 
+                ? 'Create your first email template to get started' 
+                : 'No public templates available'}
+          </p>
+          {activeTab === 'MY_TEMPLATES' && !(search || activeCategory !== 'ALL') && (
+            <Link href="/dashboard/templates/new" className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
+              Create your first template
+            </Link>
+          )}
         </div>
       )}
 
@@ -361,13 +400,19 @@ export default function TemplatesPage() {
             </div>
 
               <div className="flex items-center gap-3">
-                <Link href={`/dashboard/campaigns/new?templateId=${previewTemplate.id}`} className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 text-sm font-semibold rounded-xl transition shadow-sm hover:bg-indigo-50">
-                  Create Campaign
-                </Link>
-                {previewTemplate.userId !== null && (
-                  <Link href={`/dashboard/templates/${previewTemplate.id}/edit`} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
-                    Edit Template
-                  </Link>
+                {previewTemplate.userId !== null ? (
+                  <>
+                    <Link href={`/dashboard/campaigns/new?templateId=${previewTemplate.id}`} className="px-4 py-2 bg-white border border-indigo-200 text-indigo-700 text-sm font-semibold rounded-xl transition shadow-sm hover:bg-indigo-50">
+                      Create Campaign
+                    </Link>
+                    <Link href={`/dashboard/templates/${previewTemplate.id}/edit`} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold rounded-xl transition shadow-sm">
+                      Edit Template
+                    </Link>
+                  </>
+                ) : (
+                  <button onClick={() => handleDuplicate(previewTemplate.id)} disabled={duplicating === previewTemplate.id} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition shadow-sm">
+                    {duplicating === previewTemplate.id ? 'Processing...' : 'Use Template'}
+                  </button>
                 )}
                 <button onClick={() => setPreviewTemplate(null)} className="p-2 ml-2 text-[#6B7280] hover:text-[#111827] hover:bg-gray-100 rounded-lg transition">
                   <X className="w-5 h-5" />

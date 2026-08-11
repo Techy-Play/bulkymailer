@@ -149,6 +149,7 @@ model User {
   senderProfiles SenderProfile[]
   templates      Template[]
   campaigns      Campaign[]
+  mediaAssets    MediaAsset[]
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +222,13 @@ enum TemplateCategory {
   PERSONALIZED
   GENERAL
   TRANSACTIONAL
+  WELCOME
+  PRODUCT
+  EVENT
+  E_COMMERCE
+  SECURITY
+  ENGAGEMENT
+  SEASONAL
 }
 
 // ---------------------------------------------------------------------------
@@ -256,16 +264,27 @@ model SenderProfile {
 }
 
 // ---------------------------------------------------------------------------
+// Template Generation
+// ---------------------------------------------------------------------------
+
+enum TemplateGeneration {
+  LEGACY
+  MODERN
+}
+
+// ---------------------------------------------------------------------------
 // Template
 // ---------------------------------------------------------------------------
 
 model Template {
   id          String           @id @default(cuid())
+  slug        String?
   userId      String?          // null = system global
   user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   name        String
   category    TemplateCategory @default(GENERAL)
+  generation  TemplateGeneration @default(MODERN)
   htmlContent String           @db.Text
   jsonTree    Json?
   
@@ -294,6 +313,7 @@ model TemplateVersion {
   version     Int
   versionName String?
   
+  generation  TemplateGeneration @default(MODERN)
   htmlContent String   @db.Text
   jsonTree    Json?
   
@@ -379,4 +399,24 @@ model CampaignEvent {
   userAgent   String?
   
   createdAt   DateTime   @default(now())
+}
+
+// ---------------------------------------------------------------------------
+// Media Asset (Library)
+// ---------------------------------------------------------------------------
+
+model MediaAsset {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  url       String   // Cloudinary URL
+  filename  String
+  width     Int?
+  height    Int?
+  sizeBytes Int?
+  mimeType  String?
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

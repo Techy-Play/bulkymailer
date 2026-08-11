@@ -17,13 +17,38 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     });
 
     if (!existing) return NextResponse.json({ error: "Template not found" }, { status: 404 });
+    if (existing.generation === 'LEGACY') return NextResponse.json({ error: "Legacy templates cannot be duplicated." }, { status: 400 });
+
+    // Handle name collision
+    let baseName = existing.name;
+    // If it's a public template, we might want to keep the name exactly as it is for the copy if the user doesn't own one yet
+    let newName = existing.userId === null ? baseName : `${baseName} (Copy)`;
+    
+    let isUnique = false;
+    let suffixCounter = 2;
+    while (!isUnique) {
+      const collision = await db.template.findFirst({
+        where: { userId, name: newName }
+      });
+      if (!collision) {
+        isUnique = true;
+      } else {
+        newName = `${baseName} (Copy ${suffixCounter})`;
+        suffixCounter++;
+      }
+    }
+
+    // Deep copy JSON tree
+    const newJsonTree = existing.jsonTree ? JSON.parse(JSON.stringify(existing.jsonTree)) : null;
 
     const newTemplate = await db.template.create({
       data: {
         userId,
-        name: `${existing.name} Copy`,
+        name: newName,
         category: existing.category,
+        generation: 'MODERN',
         htmlContent: existing.htmlContent,
+        jsonTree: newJsonTree as any,
         description: existing.description,
         previewText: existing.previewText
       }

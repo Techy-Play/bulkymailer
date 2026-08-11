@@ -46,6 +46,23 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Template not found" }, { status: 404 });
     }
 
+    if (existing.userId === null && existing.generation === 'MODERN') {
+      return NextResponse.json({ error: "Public system templates cannot be modified." }, { status: 403 });
+    }
+
+    let finalHtml = htmlContent;
+    if (jsonTree && !Array.isArray(jsonTree)) {
+      try {
+        const { renderToMjml } = await import('@templatical/renderer');
+        const mjml2html = (await import('mjml')).default;
+        const mjml = await renderToMjml(jsonTree);
+        const compiled = await mjml2html(mjml);
+        finalHtml = compiled.html;
+      } catch (e) {
+        console.error("Failed to compile MJML to HTML", e);
+      }
+    }
+
     // If template belongs to another user or is a System Template (userId === null),
     // automatically FORK it into the current user's library as a new template draft.
     if (existing.userId !== userId) {
@@ -54,7 +71,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
           userId,
           name: name || `${existing.name} (My Copy)`,
           category: category || existing.category || "GENERAL",
-          htmlContent: htmlContent !== undefined ? htmlContent : existing.htmlContent,
+          htmlContent: finalHtml !== undefined ? finalHtml : existing.htmlContent,
           description: description !== undefined ? description : existing.description,
           previewText: previewText !== undefined ? previewText : existing.previewText,
           isFavorite: false,
@@ -70,7 +87,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       data: {
         name: name !== undefined ? name : existing.name,
         category: category !== undefined ? category : existing.category,
-        htmlContent: htmlContent !== undefined ? htmlContent : existing.htmlContent,
+        htmlContent: finalHtml !== undefined ? finalHtml : existing.htmlContent,
         description: description !== undefined ? description : existing.description,
         previewText: previewText !== undefined ? previewText : existing.previewText,
         isFavorite: isFavorite !== undefined ? isFavorite : existing.isFavorite,

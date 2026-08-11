@@ -73,3 +73,36 @@ export async function uploadLogoToCloudinary(
     uploadStream.end(buffer);
   });
 }
+
+/**
+ * Upload a template image (preserves aspect ratio, returns dimensions).
+ */
+export async function uploadTemplateImageToCloudinary(
+  buffer: Buffer,
+  folder: string,
+  publicId: string
+): Promise<{ url: string; width: number; height: number }> {
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      {
+        folder,
+        public_id: publicId,
+        overwrite: true,
+        resource_type: "image",
+        // Do NOT crop. Limit width to 2000px if it's huge, otherwise keep aspect ratio intact.
+        transformation: [
+          { width: 2000, crop: "limit", quality: "auto:good" },
+        ],
+      },
+      (error, result) => {
+        if (error || !result) {
+          reject(error ?? new Error("Cloudinary template image upload failed"));
+        } else {
+        }
+      }
+    );
+    uploadStream.end(buffer);
+  });
+}
+
+

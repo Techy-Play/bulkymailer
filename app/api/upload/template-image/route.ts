@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
-import { uploadToCloudinary } from "@/lib/cloudinary";
-import { getSessionUser } from "@/lib/auth";
+import { uploadTemplateImageToCloudinary } from "@/lib/cloudinary";
+import { getSessionUserId } from "@/lib/auth";
+import { db } from "@/lib/db";
 
 export async function POST(request: Request) {
   try {
-    const user = await getSessionUser();
-    if (!user) {
+    const userId = await getSessionUserId();
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -23,14 +24,27 @@ export async function POST(request: Request) {
     const uniqueId = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
     const publicId = `template-image-${uniqueId}`;
 
-    const secureUrl = await uploadToCloudinary(
+    const { url, width, height } = await uploadTemplateImageToCloudinary(
       buffer,
       "bulkymailer/template-assets",
-      publicId,
-      "image"
+      publicId
     );
 
-    return NextResponse.json({ url: secureUrl }, { status: 200 });
+    // Create the MediaAsset in the database
+    await db.mediaAsset.create({
+      data: {
+        userId,
+        url,
+        filename: file.name || "uploaded-image",
+        width,
+        height,
+        sizeBytes: file.size,
+        mimeType: file.type,
+      },
+    });
+
+    // As requested, return ONLY the canonical { url } for onRequestMedia to consume
+    return NextResponse.json({ url }, { status: 200 });
   } catch (error: any) {
     console.error("[UPLOAD_TEMPLATE_IMAGE_ERROR]", error);
     return NextResponse.json(
