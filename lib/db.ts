@@ -5,9 +5,23 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+function getConnectionString(): string {
+  let url = process.env.DATABASE_URL || "";
+  if (
+    url.includes("sslmode=require") ||
+    url.includes("sslmode=prefer") ||
+    url.includes("sslmode=verify-ca")
+  ) {
+    url = url.replace(/sslmode=(require|prefer|verify-ca)/g, "sslmode=verify-full");
+  } else if (url && !url.includes("sslmode=")) {
+    url += (url.includes("?") ? "&" : "?") + "sslmode=verify-full";
+  }
+  return url;
+}
+
 function createPrismaClient() {
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL!,
+    connectionString: getConnectionString(),
   });
 
   return new PrismaClient({
