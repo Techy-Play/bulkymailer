@@ -99,72 +99,97 @@ export default function TemplatesPage() {
   const myTemplates = filteredTemplates.filter(t => t.userId !== null)
   const systemTemplates = filteredTemplates.filter(t => t.userId === null)
 
-  const renderCard = (template: Template) => (
-    <div key={template.id} className="group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col">
-      <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 140 }}>
-        <iframe
-          srcDoc={template.htmlContent}
-          title={template.name}
-          scrolling="no"
-          style={{
-            width: '800px',
-            height: '640px',
-            transform: 'scale(0.225)',
-            transformOrigin: 'top left',
-            pointerEvents: 'none',
-            border: 'none',
-          }}
-        />
-        
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
-          <button onClick={() => setPreviewTemplate(template)} className="px-3 py-1.5 bg-white text-[#111827] text-xs font-semibold rounded-lg shadow hover:bg-gray-50 transition">Preview</button>
-          {template.userId !== null ? (
-            <Link href={`/dashboard/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit</Link>
-          ) : (
-            <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Use</Link>
+  const renderCard = (template: Template) => {
+    const isMenuOpen = openMenuId === template.id
+    return (
+      <div 
+        key={template.id} 
+        className={`group bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all flex flex-col relative ${isMenuOpen ? 'z-30 ring-2 ring-indigo-500/20' : 'z-0'}`}
+      >
+        <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 140 }}>
+          <iframe
+            srcDoc={template.htmlContent}
+            title={template.name}
+            scrolling="no"
+            style={{
+              width: '800px',
+              height: '640px',
+              transform: 'scale(0.225)',
+              transformOrigin: 'top left',
+              pointerEvents: 'none',
+              border: 'none',
+            }}
+          />
+          
+          {/* Hover overlay */}
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100">
+            <button onClick={() => setPreviewTemplate(template)} className="px-3 py-1.5 bg-white text-[#111827] text-xs font-semibold rounded-lg shadow hover:bg-gray-50 transition">Preview</button>
+            {template.userId !== null ? (
+              <Link href={`/dashboard/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit</Link>
+            ) : (
+              <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Use</Link>
+            )}
+          </div>
+
+          {template.userId === null && (
+            <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/70 backdrop-blur-sm text-white text-[10px] font-bold rounded-full">System</span>
           )}
         </div>
 
-        {template.userId === null && (
-          <span className="absolute top-2 left-2 px-2 py-0.5 bg-gray-900/70 backdrop-blur-sm text-white text-[10px] font-bold rounded-full">System</span>
-        )}
-      </div>
-
-      <div className="p-3 flex-1 flex flex-col justify-center relative">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
-            <p className="text-xs text-[#6B7280] mt-0.5">{template.category} · {relativeTime(template.createdAt)}</p>
-          </div>
-          <div className="relative flex-shrink-0">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === template.id ? null : template.id); }}
-              className="p-1 rounded-md text-gray-400 hover:text-[#111827] hover:bg-gray-100 transition"
-            >
-              <MoreHorizontal className="w-5 h-5" />
-            </button>
-            {openMenuId === template.id && (
-              <div className="absolute right-0 top-full mt-1 w-44 bg-white border border-gray-200 rounded-xl shadow-lg py-1 z-10" onClick={e => e.stopPropagation()}>
-                <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="block w-full text-left px-4 py-2 text-sm font-medium text-indigo-600 hover:bg-gray-50">Create Campaign</Link>
-                <div className="border-t border-gray-100 my-1"></div>
-                <button onClick={() => { setPreviewTemplate(template); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50">Preview</button>
-                {template.userId !== null && (
-                  <Link href={`/dashboard/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50">Edit</Link>
-                )}
-                <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="w-full text-left px-4 py-2 text-sm text-[#111827] hover:bg-gray-50 disabled:opacity-50">
-                  {duplicating === template.id ? 'Duplicating...' : 'Duplicate'}
-                </button>
-                {template.userId !== null && (
-                  <button onClick={() => { setConfirmDeleteId(template.id); setConfirmInput(''); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">Delete</button>
-                )}
-              </div>
-            )}
+        <div className="p-3 flex-1 flex flex-col justify-center relative">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
+              <p className="text-xs text-[#6B7280] mt-0.5">{template.category} · {relativeTime(template.createdAt)}</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <button 
+                onClick={(e) => { 
+                  e.stopPropagation(); 
+                  e.preventDefault();
+                  setOpenMenuId(isMenuOpen ? null : template.id); 
+                }}
+                className={`p-1.5 rounded-lg text-gray-400 hover:text-[#111827] hover:bg-gray-100 transition ${isMenuOpen ? 'bg-gray-100 text-[#111827]' : ''}`}
+                title="More actions"
+              >
+                <MoreHorizontal className="w-5 h-5" />
+              </button>
+              {isMenuOpen && (
+                <div 
+                  className="absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100" 
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Link href={`/dashboard/campaigns/new?templateId=${template.id}`} className="block w-full text-left px-4 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50/60 transition">
+                    Create Campaign
+                  </Link>
+                  <div className="border-t border-gray-100 my-1"></div>
+                  <button onClick={() => { setPreviewTemplate(template); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
+                    Preview
+                  </button>
+                  {template.userId !== null && (
+                    <Link href={`/dashboard/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
+                      Edit Template
+                    </Link>
+                  )}
+                  <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 disabled:opacity-50 transition">
+                    {duplicating === template.id ? 'Duplicating...' : 'Duplicate'}
+                  </button>
+                  {template.userId !== null && (
+                    <>
+                      <div className="border-t border-gray-100 my-1"></div>
+                      <button onClick={() => { setConfirmDeleteId(template.id); setConfirmInput(''); setOpenMenuId(null); }} className="w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition">
+                        Delete Template
+                      </button>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
