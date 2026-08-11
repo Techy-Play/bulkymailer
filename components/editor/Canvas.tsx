@@ -39,10 +39,8 @@ export function Canvas({
   onHtmlChange,
 }: CanvasProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const editedHtmlRef = useRef<string>('')
-  
   const [toolbarRect, setToolbarRect] = useState<DOMRect | null>(null)
-  
+
   const selectedNode = selectedNodeId ? findNode(root, selectedNodeId) : null
   const htmlContent = serializeJSONToEmailHTML(root)
 
@@ -54,11 +52,10 @@ export function Canvas({
       const doc = iframe.contentDocument
       if (!doc) return
 
+      // Enable text editing inside body while preserving structural elements
       doc.body.contentEditable = "true"
-      doc.designMode = "on"
 
       doc.addEventListener('click', (e) => {
-        e.preventDefault()
         const target = e.target as HTMLElement
         const nodeEl = target.closest('[data-node-id]') as HTMLElement
         if (nodeEl) {
@@ -78,21 +75,34 @@ export function Canvas({
       })
 
       let debounceTimer: NodeJS.Timeout
-      doc.body.oninput = () => {
+      doc.body.oninput = (e: Event) => {
         clearTimeout(debounceTimer)
-        const currentContent = doc.documentElement.outerHTML
-        editedHtmlRef.current = currentContent
-        debounceTimer = setTimeout(() => {
-          if (onHtmlChange) {
-            onHtmlChange(currentContent)
+        const target = e.target as HTMLElement
+        const nodeEl = target?.closest('[data-node-id]') as HTMLElement
+        if (nodeEl) {
+          const id = nodeEl.getAttribute('data-node-id')
+          if (id) {
+            const node = findNode(root, id)
+            if (node) {
+              const newText = nodeEl.innerText || nodeEl.textContent || ''
+              debounceTimer = setTimeout(() => {
+                if (node.type === 'hero') {
+                  onUpdateProp(id, 'title', newText)
+                } else if (node.type === 'heading' || node.type === 'text') {
+                  onUpdateProp(id, 'content', newText)
+                } else if (node.type === 'button') {
+                  onUpdateProp(id, 'text', newText)
+                }
+              }, 400)
+            }
           }
-        }, 1500)
+        }
       }
     }
 
     iframe.addEventListener('load', handleLoad)
     return () => iframe.removeEventListener('load', handleLoad)
-  }, [onSelectNode, onHtmlChange])
+  }, [root, onSelectNode, onUpdateProp])
 
   useEffect(() => {
     if (!selectedNodeId) {
@@ -127,23 +137,23 @@ export function Canvas({
 
   const renderToolbar = () => {
     if (!selectedNode || !toolbarRect) return null
-    
+
     return (
-      <div 
+      <div
         className="fixed z-50 bg-white border border-gray-200 rounded-xl shadow-lg flex items-center p-1 gap-1"
         style={{
-          top: toolbarRect.top - 48,
-          left: toolbarRect.left,
+          top: Math.max(16, toolbarRect.top - 48),
+          left: Math.max(16, toolbarRect.left),
         }}
       >
         <div className="flex items-center gap-1 border-r border-gray-200 pr-1">
           <GripVertical className="w-4 h-4 text-gray-400 cursor-move" />
         </div>
-        
-        {(selectedNode.type === 'heading' || selectedNode.type === 'text') && (
+
+        {(selectedNode.type === 'heading' || selectedNode.type === 'text' || selectedNode.type === 'hero') && (
           <>
-            <input 
-              type="color" 
+            <input
+              type="color"
               value={selectedNode.style?.textColor || '#000000'}
               onChange={(e) => onUpdateStyle(selectedNode.id, 'textColor', e.target.value)}
               className="w-6 h-6 rounded cursor-pointer"
@@ -155,25 +165,25 @@ export function Canvas({
             <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'align', 'right')}><AlignRight className="w-4 h-4" /></button>
           </>
         )}
-        
+
         {selectedNode.type === 'image' && (
           <>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '9999px')}><Circle className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '16px')}><Square className="w-4 h-4" /></button>
-            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '0px')}><Minus className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '50%')} title="Circle ⭕"><Circle className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '16px')} title="Rounded ▢"><Square className="w-4 h-4" /></button>
+            <button className="p-1.5 hover:bg-gray-100 rounded text-[#111827]" onClick={() => onUpdateStyle(selectedNode.id, 'borderRadius', '0px')} title="Rectangle ▭"><Minus className="w-4 h-4" /></button>
           </>
         )}
 
         {selectedNode.type === 'button' && (
           <>
-            <input 
-              type="color" 
+            <input
+              type="color"
               value={selectedNode.style?.backgroundColor || '#4F46E5'}
               onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
               className="w-6 h-6 rounded cursor-pointer"
             />
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="URL"
               value={selectedNode.props?.href || ''}
               onChange={(e) => onUpdateProp(selectedNode.id, 'href', e.target.value)}
@@ -184,8 +194,8 @@ export function Canvas({
 
         {selectedNode.type === 'container' && (
           <>
-            <input 
-              type="color" 
+            <input
+              type="color"
               value={selectedNode.style?.backgroundColor || '#ffffff'}
               onChange={(e) => onUpdateStyle(selectedNode.id, 'backgroundColor', e.target.value)}
               className="w-6 h-6 rounded cursor-pointer"
@@ -209,6 +219,7 @@ export function Canvas({
 
   return (
     <div className="flex-1 min-h-0 flex flex-col bg-[#F8FAFC] overflow-auto p-6 items-center justify-center relative">
+      {renderToolbar()}
       {previewTab === 'desktop' ? (
         <div className="w-full max-w-2xl h-full bg-white rounded-2xl border border-gray-200 shadow-md min-h-[600px] overflow-hidden relative flex flex-col">
           {isCanvasEmpty ? (
@@ -248,23 +259,23 @@ export function Canvas({
           )}
         </div>
       ) : (
-        <div className="w-full max-w-xl bg-white border border-gray-200 rounded-2xl shadow-md p-6 space-y-4">
-          <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wide">Gmail Inbox Preview</h4>
-          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-purple-600 text-white font-bold flex items-center justify-center shrink-0">B</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-sm text-[#111827]">BulkyMailer Campaign</span>
-                <span className="text-xs text-[#6B7280]">Just now</span>
+        <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-4 shadow-sm space-y-3">
+          <p className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">Inbox Preview</p>
+          <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex items-start gap-3">
+            <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-bold flex items-center justify-center text-sm shrink-0">
+              BM
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-xs text-[#111827]">BulkyMailer Support</span>
+                <span className="text-[10px] text-gray-400">Just now</span>
               </div>
-              <p className="text-xs font-semibold text-[#111827] truncate">Custom Email Subject</p>
-              <p className="text-xs text-[#6B7280] truncate">Blank template preview...</p>
+              <p className="text-xs font-bold text-[#111827] truncate">Welcome to BulkyMailer</p>
+              <p className="text-xs text-gray-500 truncate">Explore your template and start dispatching campaigns.</p>
             </div>
           </div>
         </div>
       )}
-
-      {renderToolbar()}
     </div>
   )
 }

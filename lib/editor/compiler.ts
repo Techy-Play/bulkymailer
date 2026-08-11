@@ -2,6 +2,7 @@ import { TemplateJSONNode } from './types';
 
 export function createDefaultTemplateJSON(): TemplateJSONNode {
   const timestamp = Date.now();
+  const currentYear = new Date().getFullYear();
   return {
     id: 'root-container',
     type: 'container',
@@ -41,7 +42,12 @@ export function createDefaultTemplateJSON(): TemplateJSONNode {
         locked: true,
         version: 1,
         capabilities: { resize: false, duplicate: false, delete: false, move: false, inlineEdit: false, ai: false },
-        props: { companyName: 'Your Company Name', address: '123 Main Street, Suite 400', unsubscribeUrl: '{{unsubscribeUrl}}' },
+        props: {
+          companyName: 'Your Company Name',
+          address: '123 Main Street, Suite 400',
+          unsubscribeUrl: '{{unsubscribeUrl}}',
+          copyrightYear: String(currentYear),
+        },
         style: { backgroundColor: '#F9FAFB', textColor: '#9CA3AF' }
       }
     ],
@@ -53,61 +59,23 @@ export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
     return createDefaultTemplateJSON();
   }
 
+  const currentYear = new Date().getFullYear();
+
   // Clean HTML entity typos like &amp;copy; or &copy; -> ©
   const html = rawHtml
     .replace(/&amp;copy;/gi, '©')
-    .replace(/&copy;/gi, '©');
+    .replace(/&copy;/gi, '©')
+    .replace(/\b202[0-5]\b/g, String(currentYear)); // Always upgrade stale 2020-2025 years in footer/text to current year
 
-  const children: TemplateJSONNode[] = [];
-
-  // 1. Extract H1 title
-  const h1Match = html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
-  const titleText = h1Match ? h1Match[1].replace(/<[^>]+>/g, '').trim() : '';
-
-  // 2. Extract subtitle/paragraph after h1
-  const pMatch = html.match(/<p[^>]*>([\s\S]*?)<\/p>/i);
-  const subtitleText = pMatch ? pMatch[1].replace(/<[^>]+>/g, '').trim() : '';
-
-  // 3. Extract CTA button link & text
-  const btnMatch = html.match(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/i);
-  const btnHref = btnMatch ? btnMatch[1] : 'https://example.com';
-  const btnText = btnMatch ? btnMatch[2].replace(/<[^>]+>/g, '').trim() : '';
-
-  if (titleText) {
-    children.push({
-      id: `hero-${Date.now()}`,
-      type: 'hero',
-      name: 'Hero Banner',
-      version: 1,
-      capabilities: { resize: true, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-      props: {
-        title: titleText,
-        subtitle: subtitleText || 'Special announcement and updates',
-        buttonText: btnText || 'Get Started →',
-        buttonHref: btnHref,
-      },
-      style: { backgroundColor: '#111827', textColor: '#FFFFFF', paddingTop: '48px', paddingBottom: '48px', align: 'center' }
-    });
+  // Sequential Token Scanner to preserve exact DOM order
+  interface TokenMatch {
+    index: number;
+    node: TemplateJSONNode;
   }
 
-  // 4. Extract Headings
-  const h2Matches = Array.from(html.matchAll(/<h[2-4][^>]*>([\s\S]*?)<\/h[2-4]>/gi));
-  h2Matches.forEach((m, idx) => {
-    const text = m[1].replace(/<[^>]+>/g, '').trim();
-    if (text && text !== titleText) {
-      children.push({
-        id: `heading-${Date.now()}-${idx}`,
-        type: 'heading',
-        name: `Heading ${idx + 1}`,
-        version: 1,
-        capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-        props: { content: text },
-        style: { textColor: '#111827', fontSize: '22px', fontWeight: '700', align: 'left' }
-      });
-    }
-  });
+  const tokens: TokenMatch[] = [];
 
-  // 5. Extract Images with Style & Shape Recognition
+  // 1. Scan Images in sequential order
   const imgMatches = Array.from(html.matchAll(/<img([^>]*)>/gi));
   imgMatches.forEach((m, idx) => {
     const attrs = m[1];
@@ -124,58 +92,131 @@ export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
       const widthVal = widthMatch ? widthMatch[1] : '';
       const heightVal = heightMatch ? heightMatch[1] : '';
 
-      const isCircle = /border-radius:\s*(50%|9999px)/i.test(attrs) || /rounded-full/i.test(attrs) || (widthVal && heightVal && widthVal === heightVal && parseInt(widthVal) < 220);
+      const isCircle =
+        /border-radius:\s*(50%|9999px)/i.test(attrs) ||
+        /rounded-full/i.test(attrs) ||
+        (widthVal && heightVal && widthVal === heightVal && parseInt(widthVal) < 220);
 
-      const isCenter = /margin:\s*auto/i.test(attrs) || /align=["']center["']/i.test(attrs) || /text-align:\s*center/i.test(attrs);
+      const isCenter =
+        /margin:\s*auto/i.test(attrs) ||
+        /align=["']center["']/i.test(attrs) ||
+        /text-align:\s*center/i.test(attrs);
 
       const shape = isCircle ? 'circle' : 'rounded';
       const borderRadius = isCircle ? '50%' : '12px';
       const imgWidth = isCircle ? (widthVal || '140') : (widthVal || '540');
       const imgHeight = isCircle ? (heightVal || widthVal || '140') : (heightVal || 'auto');
 
-      children.push({
-        id: `image-${Date.now()}-${idx}`,
-        type: 'image',
-        name: isCircle ? `Circular Profile Logo ${idx + 1}` : `Image Banner ${idx + 1}`,
-        version: 1,
-        capabilities: { resize: true, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-        props: {
-          src,
-          alt,
-          width: imgWidth,
-          height: imgHeight,
-          shape,
-          objectFit: isCircle ? 'cover' : 'contain',
+      tokens.push({
+        index: m.index || 0,
+        node: {
+          id: `image-${Date.now()}-${idx}`,
+          type: 'image',
+          name: isCircle ? `Circular Profile Logo ${idx + 1}` : `Image Banner ${idx + 1}`,
+          version: 1,
+          capabilities: { resize: true, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
+          props: {
+            src,
+            alt,
+            width: imgWidth,
+            height: imgHeight,
+            shape,
+            objectFit: isCircle ? 'cover' : 'contain',
+          },
+          style: {
+            borderRadius,
+            align: isCenter ? 'center' : 'center',
+            width: `${imgWidth}px`,
+            height: isCircle ? `${imgHeight}px` : 'auto',
+            objectFit: isCircle ? 'cover' : 'contain',
+          },
         },
-        style: {
-          borderRadius,
-          align: isCenter ? 'center' : 'left',
-          width: `${imgWidth}px`,
-          height: isCircle ? `${imgHeight}px` : 'auto',
-          objectFit: isCircle ? 'cover' : 'contain',
-        }
       });
     }
   });
 
-  // 6. Extract Paragraphs as Text Nodes
-  const allParagraphs = Array.from(html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi));
-  allParagraphs.forEach((m, idx) => {
+  // 2. Scan Headings in sequential order (H1, H2, H3)
+  const hMatches = Array.from(html.matchAll(/<(h[1-4])[^>]*>([\s\S]*?)<\/\1>/gi));
+  hMatches.forEach((m, idx) => {
+    const text = m[2].replace(/<[^>]+>/g, '').trim();
+    if (text) {
+      const tag = m[1].toLowerCase();
+      tokens.push({
+        index: m.index || 0,
+        node: {
+          id: `heading-${Date.now()}-${idx}`,
+          type: 'heading',
+          name: `${tag.toUpperCase()} Heading ${idx + 1}`,
+          version: 1,
+          capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
+          props: { content: text, level: tag },
+          style: {
+            textColor: '#111827',
+            fontSize: tag === 'h1' ? '28px' : '22px',
+            fontWeight: '700',
+            align: 'center',
+          },
+        },
+      });
+    }
+  });
+
+  // 3. Scan Buttons in sequential order
+  const btnMatches = Array.from(html.matchAll(/<a[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi));
+  btnMatches.forEach((m, idx) => {
+    const href = m[1];
+    const text = m[2].replace(/<[^>]+>/g, '').trim();
+    if (text && text.length < 60 && !text.toLowerCase().includes('unsubscribe')) {
+      tokens.push({
+        index: m.index || 0,
+        node: {
+          id: `button-${Date.now()}-${idx}`,
+          type: 'button',
+          name: `CTA Button ${idx + 1}`,
+          version: 1,
+          capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
+          props: { text, href },
+          style: {
+            backgroundColor: '#4F46E5',
+            textColor: '#FFFFFF',
+            borderRadius: '8px',
+            paddingTop: '12px',
+            paddingBottom: '12px',
+            paddingLeft: '24px',
+            paddingRight: '24px',
+            align: 'center',
+          },
+        },
+      });
+    }
+  });
+
+  // 4. Scan Paragraphs in sequential order
+  const pMatches = Array.from(html.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi));
+  pMatches.forEach((m, idx) => {
     const text = m[1].replace(/<[^>]+>/g, '').trim();
-    if (text && text !== subtitleText && text.length > 3) {
-      children.push({
-        id: `text-${Date.now()}-${idx}`,
-        type: 'text',
-        name: `Paragraph ${idx + 1}`,
-        version: 1,
-        capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-        props: { content: text },
-        style: { textColor: '#374151', fontSize: '15px' }
+    if (text && text.length > 3 && !text.toLowerCase().includes('unsubscribe')) {
+      tokens.push({
+        index: m.index || 0,
+        node: {
+          id: `text-${Date.now()}-${idx}`,
+          type: 'text',
+          name: `Paragraph ${idx + 1}`,
+          version: 1,
+          capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
+          props: { content: text },
+          style: { textColor: '#374151', fontSize: '15px', align: 'center' },
+        },
       });
     }
   });
 
-  // Fallback: If no structured children were parsed, build default visual text & button nodes
+  // Sort tokens by their exact DOM appearance order in the HTML string
+  tokens.sort((a, b) => a.index - b.index);
+
+  const children: TemplateJSONNode[] = tokens.map((t) => t.node);
+
+  // Fallback: If no structured children were parsed
   if (children.length === 0) {
     const cleanText = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     const snippet = cleanText.substring(0, 150);
@@ -185,19 +226,14 @@ export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
       name: 'Email Content',
       version: 1,
       capabilities: { resize: false, duplicate: true, delete: true, move: true, inlineEdit: true, ai: true },
-      props: { content: snippet || 'Custom AI Generated Email Content' },
-      style: { textColor: '#374151', fontSize: '15px' }
+      props: { content: snippet || 'Custom Email Content' },
+      style: { textColor: '#374151', fontSize: '15px' },
     });
   }
 
-  // 7. Footer Deduplication: Only append default footer if HTML does NOT already contain an unsubscribe link or footer
-  const hasExistingUnsubscribe =
-    /unsubscribe/i.test(html) ||
-    /\{\{unsubscribeUrl\}\}/i.test(html) ||
-    /<footer/i.test(html) ||
-    children.some((c) => c.type === 'footer' || (c.props?.content && /unsubscribe/i.test(c.props.content)));
-
-  if (!hasExistingUnsubscribe) {
+  // 5. Always Append Footer with Current Year
+  const hasExistingFooter = children.some((c) => c.type === 'footer');
+  if (!hasExistingFooter) {
     children.push({
       id: `footer-${Date.now()}`,
       type: 'footer',
@@ -205,8 +241,13 @@ export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
       locked: true,
       version: 1,
       capabilities: { resize: false, duplicate: false, delete: false, move: false, inlineEdit: false, ai: false },
-      props: { companyName: 'BulkyMailer', address: 'CAN-SPAM Compliant Address', unsubscribeUrl: '{{unsubscribeUrl}}' },
-      style: { backgroundColor: '#F9FAFB', textColor: '#9CA3AF' }
+      props: {
+        companyName: 'BulkyMailer Inc.',
+        address: '123 Tech Avenue, San Francisco, CA',
+        unsubscribeUrl: '{{unsubscribeUrl}}',
+        copyrightYear: String(currentYear),
+      },
+      style: { backgroundColor: '#F9FAFB', textColor: '#9CA3AF' },
     });
   }
 
@@ -222,19 +263,9 @@ export function compileHTMLToNodeTree(rawHtml: string): TemplateJSONNode {
   };
 }
 
-export interface CompilerResult {
-  valid: boolean;
-  nodeTree?: TemplateJSONNode;
-  errors?: string[];
-}
-
-export function validateAndParseMonacoHTML(html: string, currentRoot: TemplateJSONNode): CompilerResult {
-  if (!html || !html.trim()) {
-    return { valid: false, errors: ['HTML string is empty'] };
-  }
-
-  // Parse HTML into structured node tree
-  const compiledTree = compileHTMLToNodeTree(html);
-
-  return { valid: true, nodeTree: compiledTree };
+export function validateAndParseMonacoHTML(html: string, currentRoot: TemplateJSONNode): { valid: boolean; nodeTree?: TemplateJSONNode } {
+  if (!html || !html.trim()) return { valid: false };
+  // Only re-compile if HTML has valid body elements
+  const compiled = compileHTMLToNodeTree(html);
+  return { valid: true, nodeTree: compiled };
 }

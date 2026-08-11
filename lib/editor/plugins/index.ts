@@ -339,13 +339,14 @@ export const PLUGIN_REGISTRY: Record<ComponentType, ComponentPlugin> = {
     renderHtml: (node) => {
       const p = node.props || {};
       const s = node.style || {};
+      const year = new Date().getFullYear();
       return `
 <table data-node-id="${node.id}" role="presentation" border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:${s.backgroundColor || '#F9FAFB'};">
   <tr>
     <td align="center" style="padding:32px 24px; color:${s.textColor || '#9CA3AF'}; font-size:12px; line-height:1.5;">
-      <p style="margin:0 0 8px 0; font-weight:600; color:#6B7280;">${p.companyName}</p>
-      <p style="margin:0 0 12px 0;">${p.address}</p>
-      <p style="margin:0;"><a href="${p.unsubscribeUrl}" style="color:#6366F1; text-decoration:underline;">Unsubscribe from this mailing list</a></p>
+      <p style="margin:0 0 8px 0; font-weight:600; color:#6B7280;">© ${year} ${p.companyName || 'BulkyMailer'}. All rights reserved.</p>
+      <p style="margin:0 0 12px 0;">${p.address || ''}</p>
+      <p style="margin:0;"><a href="${p.unsubscribeUrl || '{{unsubscribeUrl}}'}" style="color:#6366F1; text-decoration:underline;">Unsubscribe from this mailing list</a></p>
     </td>
   </tr>
 </table>`;

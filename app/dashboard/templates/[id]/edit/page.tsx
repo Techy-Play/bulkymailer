@@ -447,9 +447,6 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
 
   const handleHtmlChange = useCallback((newHtml: string) => {
     setHtmlContent(newHtml)
-    const compiledRoot = compileHTMLToNodeTree(newHtml)
-    setRootNode(compiledRoot)
-    commandManagerRef.current.setRoot(compiledRoot)
   }, [])
 
   // Save to DB
