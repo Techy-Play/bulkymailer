@@ -37,38 +37,32 @@ export default async function AdminOrganizationWorkspacePage({ params }: { param
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Link href={`/admin/organizations/${org.id}/members`} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
           <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <Users className="w-6 h-6" />
           </div>
           <h3 className="font-semibold text-gray-900">Members</h3>
           <p className="text-sm text-gray-500 mt-1">{org.memberships.length} active users</p>
-        </div>
+        </Link>
         
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
+        <Link href={`/admin/campaigns?organizationId=${org.id}`} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
           <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <Send className="w-6 h-6" />
           </div>
           <h3 className="font-semibold text-gray-900">Campaigns</h3>
           <p className="text-sm text-gray-500 mt-1">Manage campaigns</p>
-        </div>
+        </Link>
         
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
+        <Link href={`/admin/templates?organizationId=${org.id}`} className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
           <div className="w-12 h-12 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
             <LayoutTemplate className="w-6 h-6" />
           </div>
           <h3 className="font-semibold text-gray-900">Templates</h3>
           <p className="text-sm text-gray-500 mt-1">Org specific templates</p>
-        </div>
+        </Link>
         
-        <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col items-center text-center group cursor-pointer hover:border-indigo-500 transition-colors">
-          <div className="w-12 h-12 rounded-xl bg-gray-50 text-gray-600 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-            <Settings className="w-6 h-6" />
-          </div>
-          <h3 className="font-semibold text-gray-900">Settings</h3>
-          <p className="text-sm text-gray-500 mt-1">Org configuration</p>
-        </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

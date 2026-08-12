@@ -15,9 +15,8 @@ export function AdminSidebar({ adminName }: { adminName: string }) {
     { name: 'Campaigns', href: '/admin/campaigns', icon: Send },
     { name: 'Contacts', href: '/admin/contacts', icon: Contact },
     { name: 'Templates', href: '/admin/templates', icon: FileImage },
-
     { name: 'Audit Logs', href: '/admin/audit-logs', icon: ShieldAlert },
-    { name: 'AI Providers', href: '/admin/system/ai', icon: Cpu },
+
   ]
 
   const handleSignOut = async () => {

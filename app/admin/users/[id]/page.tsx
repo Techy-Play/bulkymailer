@@ -82,6 +82,24 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                     {user.isOnboardingCompleted ? 'Completed' : 'Incomplete'}
                   </dd>
                 </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Subscription Plan</dt>
+                  <dd className="mt-1 text-sm text-gray-900 capitalize">{user.subscriptionType}</dd>
+                </div>
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">Monthly Email Limit</dt>
+                  <dd className="mt-1 flex items-center gap-2">
+                    <span className="text-sm text-gray-900">
+                      {user.emailsSentThisMonth} / {user.subscriptionType === 'free' ? 100 : 'Unlimited'} used
+                    </span>
+                    <div className="flex-1 max-w-[100px] h-2 bg-gray-100 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full ${user.emailsSentThisMonth >= 100 ? 'bg-red-500' : 'bg-indigo-500'}`} 
+                        style={{ width: `${Math.min((user.emailsSentThisMonth / 100) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </dd>
+                </div>
               </dl>
             </div>
           </div>
