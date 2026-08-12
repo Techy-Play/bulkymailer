@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { uploadTemplateImageToCloudinary } from "@/lib/cloudinary";
 import { getSessionUserId } from "@/lib/auth";
-import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
+import { getActiveOrganizationId, requirePermission, requireSuperAdmin } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -11,11 +11,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const orgId = await getActiveOrganizationId();
-    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
-
-    const __perm = await requirePermission(orgId, "media.upload");
-    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const admin = await requireSuperAdmin();
+    let orgId = await getActiveOrganizationId();
+    
+    if (!admin) {
+      if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+      const __perm = await requirePermission(orgId, "media.upload");
+      if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    } else {
+      // Admin bypasses org check
+      orgId = null;
+    }
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
