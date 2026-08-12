@@ -1,0 +1,174 @@
+//#region src/i18n/locales/cloud/en.ts
+var e = {
+	loading: { initializing: "Initializing..." },
+	error: {
+		title: "Something went wrong",
+		defaultMessage: "The editor could not connect to Templatical. Check your network connection and try again.",
+		authFailed: "Authentication failed. Please check your credentials.",
+		templateNotFound: "The requested template could not be found. Please verify the template ID is correct.",
+		retry: "Try Again"
+	},
+	header: {
+		title: "Templatical",
+		unsaved: "Unsaved",
+		saving: "Saving...",
+		saved: "Saved",
+		saveFailed: "Save failed",
+		save: "Save",
+		templatesUsed: "{used}/{max} templates used"
+	},
+	snapshotPreview: {
+		message: "You are previewing a previous snapshot of this template.",
+		cancel: "Cancel",
+		restore: "Restore this snapshot"
+	},
+	snapshotHistory: {
+		tooltip: "Version history",
+		dropdownTitle: "Version History",
+		noSnapshots: "No versions yet",
+		auto: "auto",
+		justNow: "Just now",
+		minutesAgo: "{minutes}m ago",
+		hoursAgo: "{hours}h ago",
+		daysAgo: "{days}d ago",
+		olderSnapshot: "Older version",
+		newerSnapshot: "Newer version"
+	},
+	aiRewrite: {
+		title: "AI Rewrite",
+		tone: "Tone",
+		length: "Length",
+		clarity: "Clarity",
+		professional: "Professional",
+		casual: "Casual",
+		friendly: "Friendly",
+		urgent: "Urgent",
+		persuasive: "Persuasive",
+		shorter: "Shorter",
+		longer: "Longer",
+		summarize: "Summarize",
+		simplify: "Simplify",
+		fixGrammar: "Fix grammar",
+		improveReadability: "Improve readability",
+		customInstruction: "Custom instruction",
+		customPlaceholder: "Describe how to rewrite...",
+		rewrite: "Rewrite",
+		rewriting: "Rewriting...",
+		undo: "Undo",
+		redo: "Redo",
+		refine: "Refine further",
+		error: "Failed to rewrite text"
+	},
+	aiChat: {
+		title: "AI Assistant",
+		button: "AI",
+		inputPlaceholder: "Describe your email template...",
+		send: "Send",
+		generating: "Generating...",
+		applied: "Changes applied to template.",
+		applyFailed: "Could not apply changes to template. Please try again.",
+		revert: "Revert changes",
+		reapply: "Re-apply changes",
+		error: "Failed to generate template",
+		clear: "Clear chat",
+		placeholder: "Describe the email template you want to create, or ask to modify the current one.",
+		loadingHistory: "Loading conversation..."
+	},
+	scoring: {
+		button: "Score",
+		title: "Template Score",
+		rescore: "Re-score",
+		scoring: "Analyzing template...",
+		overallScore: "Overall Score",
+		categories: {
+			spam: "Spam Risk",
+			readability: "Readability",
+			accessibility: "Accessibility",
+			bestPractices: "Best Practices"
+		},
+		severity: {
+			high: "High",
+			medium: "Medium",
+			low: "Low"
+		},
+		fix: "Fix with AI",
+		fixing: "Fixing...",
+		fixed: "Fixed",
+		findings: "findings",
+		noFindings: "No issues found",
+		error: "Failed to analyze template",
+		fixError: "Failed to apply fix",
+		emptyState: "Score your template to get actionable feedback on spam risk, readability, accessibility, and best practices."
+	},
+	aiMenu: {
+		aiAssistant: "AI Assistant",
+		aiAssistantDesc: "Chat with AI to create or modify your template",
+		designToTemplate: "Design to Template",
+		designToTemplateDesc: "Generate a template from an image or PDF",
+		templateScore: "Template Score",
+		templateScoreDesc: "Analyze quality, spam risk, and accessibility",
+		disclaimer: "AI can make mistakes. Please verify before approving."
+	},
+	comments: {
+		title: "Comments",
+		placeholder: "Write a comment...",
+		replyPlaceholder: "Write a reply...",
+		reply: "Reply",
+		resolve: "Resolve",
+		unresolve: "Unresolve",
+		resolved: "Resolved",
+		delete: "Delete",
+		edit: "Edit",
+		cancel: "Cancel",
+		save: "Save",
+		noComments: "No comments yet",
+		noCommentsHint: "Start a conversation by adding a comment to the template or a specific block.",
+		addComment: "Add comment",
+		deleteConfirm: "Delete this comment?",
+		filterAll: "All",
+		filterUnresolved: "Unresolved",
+		filterBlock: "This block",
+		ownedByYou: "You",
+		edited: "edited",
+		resolvedBy: "Resolved by {name}",
+		replyOne: "{count} Reply",
+		replyMany: "{count} Replies",
+		missingBlock: "Missing block",
+		saveTemplateFirst: "Save the template before commenting on this block.",
+		button: "Comments"
+	},
+	collaboration: {
+		connected: "Collaboration mode active",
+		disconnected: "Collaboration disconnected",
+		reconnecting: "Reconnecting...",
+		blockLockedBy: "Editing by {name}",
+		usersOnline: "{count} users online"
+	},
+	designReference: {
+		title: "Design Reference",
+		button: "Design",
+		uploadImage: "Image",
+		uploadPdf: "PDF",
+		dropHint: "Drop a file here or click to browse",
+		acceptedImages: "PNG, JPG, WebP (max 10MB)",
+		acceptedPdf: "PDF (max 10MB)",
+		promptLabel: "Instructions (optional)",
+		promptPlaceholder: "Describe any adjustments or preferences for the generated template...",
+		generate: "Generate from design",
+		generating: "Analyzing design and generating template...",
+		replaceWarning: "Generating from a design reference will replace the existing template content.",
+		replaceConfirm: "Replace and generate",
+		replaceCancel: "Cancel",
+		error: "Failed to generate template from design",
+		fileTooLarge: "File is too large. Maximum size is 10MB.",
+		invalidFileType: "This file type is not supported. Upload a PNG, JPG, WebP, or PDF."
+	},
+	saveGate: {
+		title: "Accessibility errors block this save",
+		body: "Your plan blocks saves while errors remain. Fix the items below or save anyway.",
+		cancel: "Review and fix",
+		confirm: "Save anyway"
+	}
+};
+//#endregion
+export { e as default };

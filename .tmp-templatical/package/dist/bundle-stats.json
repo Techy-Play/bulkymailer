@@ -1,0 +1,10 @@
+{
+  "version": "0.25.1",
+  "initialGzipBytes": 291596,
+  "initialRawBytes": 1047804,
+  "initialFileCount": 41,
+  "lazyGzipBytes": 208958,
+  "lazyRawBytes": 681431,
+  "lazyFileCount": 54,
+  "generatedAt": "2026-08-09T18:24:09.394Z"
+}

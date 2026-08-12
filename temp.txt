@@ -1,0 +1,113 @@
+//#region src/blocks.d.ts
+interface SpacingValue {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+interface BlockStyles {
+  padding: SpacingValue;
+  backgroundColor?: string;
+}
+interface BlockVisibility {
+  desktop: boolean;
+  mobile: boolean;
+}
+interface BaseBlock {
+  id: string;
+  type: string;
+  styles: BlockStyles;
+  visibility?: BlockVisibility;
+  displayCondition?: {
+    label: string;
+    before: string;
+    after: string;
+    group?: string;
+    description?: string;
+  };
+}
+type ColumnLayout = "1" | "2" | "3" | "2-1" | "1-2";
+/**
+ * Optional outer frame for a section. When present, the section is rendered
+ * inside an `mj-wrapper` — a full-width band (its own background + padding)
+ * that frames the section, e.g. a white card sitting on a colored band.
+ */
+interface SectionWrapper {
+  backgroundColor?: string;
+  padding?: SpacingValue;
+  /** Corner radius in px for the outer frame. Omitted/0 = square corners. */
+  borderRadius?: number;
+}
+interface SectionBlock extends BaseBlock {
+  type: "section";
+  columns: ColumnLayout;
+  children: Block[][];
+  /**
+   * Whether columns stack vertically on mobile. Absent or `true` keeps MJML's
+   * default responsive behavior (columns stack below 480px). `false` renders
+   * the columns inside an `<mj-group>` so they stay side-by-side on mobile,
+   * proportionally shrunk to fit.
+   */
+  stackOnMobile?: boolean;
+  /** Corner radius in px. Omitted/0 = square corners. */
+  borderRadius?: number;
+  /** Optional outer frame (rendered as an `mj-wrapper` around the section). */
+  wrapper?: SectionWrapper;
+}
+type HeadingLevel = 1 | 2 | 3 | 4;
+declare const HEADING_LEVEL_FONT_SIZE: Record<HeadingLevel, number>;
+interface TitleBlock extends BaseBlock {
+  type: "title";
+  content: string;
+  level: HeadingLevel;
+  /** Text color. Unset = inherit the document-level `textColor`. */
+  color?: string;
+  textAlign: "left" | "center" | "right";
+  fontFamily?: string;
+}
+interface ParagraphBlock extends BaseBlock {
+  type: "paragraph";
+  content: string;
+}
+interface ImageBlock extends BaseBlock {
+  type: "image";
+  src: string;
+  alt: string;
+  width: number | "full";
+  align: "left" | "center" | "right";
+  linkUrl?: string;
+  linkOpenInNewTab?: boolean;
+  placeholderUrl?: string;
+  decorative?: boolean;
+}
+interface ButtonBlock extends BaseBlock {
+  type: "button";
+  text: string;
+  url: string;
+  openInNewTab?: boolean;
+  backgroundColor: string;
+  textColor: string;
+  borderRadius: number;
+  fontSize: number;
+  buttonPadding: SpacingValue;
+  fontFamily?: string;
+  width?: number | "full";
+}
+interface DividerBlock extends BaseBlock {
+  type: "divider";
+  lineStyle: "solid" | "dashed" | "dotted";
+  color: string;
+  thickness: number;
+  width: number | "full";
+}
+interface VideoBlock extends BaseBlock {
+  type: "video";
+  url: string;
+  openInNewTab?: boolean;
+  thumbnailUrl: string;
+  alt: string;
+  width: number | "full";
+  align: "left" | "center" | "right";
+  placeholderUrl?: string;
+}
+type Social

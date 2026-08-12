@@ -1,0 +1,98 @@
+{
+  "name": "@templatical/editor",
+  "description": "Vue 3 visual drag-and-drop email editor powered by Templatical",
+  "version": "0.25.1",
+  "bugs": "https://github.com/templatical/sdk/issues",
+  "devDependencies": {
+    "@lucide/vue": "^1.29.0",
+    "@tiptap/core": "^3.29.2",
+    "@tiptap/extension-color": "^3.29.2",
+    "@tiptap/extension-font-family": "^3.29.2",
+    "@tiptap/extension-highlight": "^3.29.2",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/extension-subscript": "^3.29.2",
+    "@tiptap/extension-superscript": "^3.29.2",
+    "@tiptap/extension-text-align": "^3.29.2",
+    "@tiptap/extension-text-style": "^3.29.2",
+    "@tiptap/extension-underline": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/suggestion": "^3.29.2",
+    "@tiptap/vue-3": "^3.29.2",
+    "@vitejs/plugin-vue": "^6.0.8",
+    "@vue/test-utils": "^2.4.11",
+    "@vueuse/core": "^14.4.0",
+    "es-module-lexer": "^2.3.1",
+    "happy-dom": "^20.11.1",
+    "liquidjs": "^10.28.0",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vanilla-colorful": "^0.7.2",
+    "vite": "^8.2.1",
+    "vitest": "^4.1.10",
+    "vue": "^3.5.41",
+    "vue-draggable-plus": "^0.6.1",
+    "vue-tsc": "^3.3.9",
+    "@templatical/core": "0.25.1",
+    "@templatical/quality": "0.25.1",
+    "@templatical/types": "0.25.1"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/templatical-editor.js"
+    },
+    "./style.css": "./dist/style.css"
+  },
+  "files": [
+    "dist"
+  ],
+  "homepage": "https://templatical.com",
+  "keywords": [
+    "drag-and-drop",
+    "email",
+    "email-builder",
+    "email-editor",
+    "email-template",
+    "mjml",
+    "templatical",
+    "tiptap",
+    "vue",
+    "wysiwyg"
+  ],
+  "license": "SEE LICENSE IN LICENSE",
+  "module": "./dist/templatical-editor.js",
+  "peerDependencies": {
+    "@templatical/media-library": "0.25.1",
+    "@templatical/quality": "0.25.1",
+    "@templatical/renderer": "0.25.1"
+  },
+  "peerDependenciesMeta": {
+    "@templatical/renderer": {
+      "optional": true
+    },
+    "@templatical/media-library": {
+      "optional": true
+    },
+    "@templatical/quality": {
+      "optional": true
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/templatical/sdk.git",
+    "directory": "packages/editor"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "vite build && vue-tsc -p tsconfig.build.json && api-extractor run --local && rm -rf dist/types",
+    "build:all": "pnpm run build && vite build --config vite.cdn.config.ts",
+    "build:cdn": "vite build --config vite.cdn.config.ts",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit",
+    "verify:pack": "node scripts/verify-pack.mjs"
+  }
+}
