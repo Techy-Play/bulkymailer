@@ -924,6 +924,10 @@ The platform uses a custom, cookie-based authentication system rather than relyi
 To manage the platform globally, the system includes a "Super Admin" concept.
 - **Implementation**: The `User` model contains an `isSuperAdmin` boolean flag.
 - **Strict Login Routing**: Super Admins are strictly prohibited from logging in via the standard `/login` route. They must use the dedicated, secret `/super-admin-portal` frontend, which instantly rejects normal users. This creates a double-layered access isolation.
+- **Default Credentials**: To log in as Super Admin during development/testing, use:
+  - **URL**: `http://localhost:3000/super-admin-portal`
+  - **Email**: `superadmin@bulkymailer.com`
+  - **Password**: `SuperAdmin123!`
 - **Bypass**: Super Admins have access to specific `admin/*` routes.
 - **User Management**: The Super Admin dashboard allows comprehensive control over users, including resetting monthly limits (resetting `emailsSentThisMonth` to 0 to unblock free-tier users) and inline editing of user details (Name, Email).
 - **Helper**: The `requireSuperAdmin()` helper in `lib/auth/organization-context.ts` strictly validates this flag, completely bypassing the standard organization context when accessing platform-wide analytics, global templates, or system audit logs.
