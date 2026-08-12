@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // NEW: Block Super Admins from using the normal login page.
+    if (user.isSuperAdmin) {
+      return NextResponse.json(
+        { error: "Super Admins must use the dedicated Super Admin Portal." },
+        { status: 403 }
+      );
+    }
+
     // Verify password against the stored hash
     const passwordValid = await verifyPassword(password, user.passwordHash);
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { KeyRound, Shield, Ban, CheckCircle2, Trash2 } from 'lucide-react'
+import { KeyRound, Shield, Ban, CheckCircle2, Trash2, RefreshCw } from 'lucide-react'
 import { Role, UserStatus } from '@/app/generated/prisma/enums'
 
 type UserActionsProps = {
@@ -60,6 +60,25 @@ export function UserActions({ userId, currentRole, currentStatus }: UserActionsP
       if (!res.ok) throw new Error('Failed to reset password')
       const data = await res.json()
       toast.success(`Password reset. New password: ${data.password}`, { duration: 10000 })
+    } catch (e: any) {
+      toast.error(e.message)
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const resetMonthlyLimit = async () => {
+    if (!confirm('Are you sure you want to reset this user\'s monthly email limits?')) return
+    setIsUpdating(true)
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetMonthlyLimit: true }),
+      })
+      if (!res.ok) throw new Error('Failed to reset monthly limits')
+      toast.success('Monthly limits reset successfully')
+      router.refresh()
     } catch (e: any) {
       toast.error(e.message)
     } finally {
@@ -125,6 +144,14 @@ export function UserActions({ userId, currentRole, currentStatus }: UserActionsP
         </div>
 
         <div className="pt-4 border-t border-gray-100 space-y-3">
+          <button
+            disabled={isUpdating}
+            onClick={resetMonthlyLimit}
+            className="w-full inline-flex justify-center items-center gap-2 px-4 py-2 border border-gray-200 shadow-sm text-sm font-medium rounded-xl text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Reset Monthly Limits
+          </button>
           <button
             disabled={isUpdating}
             onClick={resetPassword}

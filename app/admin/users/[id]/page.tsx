@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft } from 'lucide-react'
 import { UserActions } from '@/components/admin/user-actions'
+import { EditUserDetails } from '@/components/admin/edit-user-details'
 
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -46,8 +47,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                   {initials}
                 </div>
                 <div>
-                  <h4 className="text-2xl font-bold text-gray-900">{user.firstName} {user.lastName}</h4>
-                  <p className="text-gray-500">{user.email}</p>
+                  <EditUserDetails user={user} />
                   <div className="mt-2 flex gap-2">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium ${
                       user.role === 'ADMIN' ? 'bg-indigo-50 text-indigo-700' :

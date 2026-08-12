@@ -31,7 +31,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
     const { id } = await params
     const body = await req.json()
-    const { role, status, isSuperAdmin } = body
+    const { role, status, isSuperAdmin, firstName, lastName, email, resetMonthlyLimit } = body
 
     if (admin.id === id && status === 'SUSPENDED') {
       return NextResponse.json({ error: 'Cannot suspend yourself' }, { status: 400 })
@@ -65,6 +65,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(role !== undefined && { role }),
         ...(status !== undefined && { status }),
         ...(isSuperAdmin !== undefined && { isSuperAdmin }),
+        ...(firstName !== undefined && { firstName }),
+        ...(lastName !== undefined && { lastName }),
+        ...(email !== undefined && { email }),
+        ...(resetMonthlyLimit === true && {
+          emailsSentThisMonth: 0,
+          emailsMonthResetAt: new Date(),
+        })
       },
     })
 
