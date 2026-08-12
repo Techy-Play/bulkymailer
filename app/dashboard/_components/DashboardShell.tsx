@@ -31,8 +31,11 @@ interface ShellProps {
     lastName: string;
     role: string;
     emailsSentThisMonth: number;
+    profileImageUrl?: string | null;
   };
   orgName?: string;
+  activeOrganizationId?: string;
+  availableOrganizations?: { id: string; name: string }[];
   navLayout?: "sidebar" | "topnav";
 }
 
@@ -42,12 +45,24 @@ const NAV_ITEMS = [
   { label: "Contacts", href: "/dashboard/contacts", icon: Users },
   { label: "Templates", href: "/dashboard/templates", icon: FileText },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
+  { label: "Settings", href: "/dashboard/settings/members", icon: Settings },
   { label: "Profile", href: "/dashboard/profile", icon: User },
 ];
 
 const FREE_TIER_LIMIT = 100;
 
 function Avatar({ user, size = 36 }: { user: ShellProps["user"]; size?: number }) {
+  if (user.profileImageUrl) {
+    return (
+      <img
+        src={user.profileImageUrl}
+        alt={`${user.firstName} ${user.lastName}`}
+        style={{ width: size, height: size }}
+        className="rounded-full object-cover shrink-0 shadow-2xs border border-gray-200"
+      />
+    );
+  }
+
   const initials = `${user.firstName?.[0] ?? ""}${user.lastName?.[0] ?? ""}`.toUpperCase() || "U";
   return (
     <div
@@ -93,7 +108,8 @@ function FreeBadge() {
 
 // ─── Sidebar layout ─────────────────────────────────────────────────────────
 
-function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">) {
+function SidebarLayout(props: Omit<ShellProps, "navLayout">) {
+  const { children, user, orgName } = props;
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -134,6 +150,33 @@ function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout"
         >
           <ChevronRight className="w-4 h-4" />
         </button>
+      )}
+
+      {/* Organization Switcher */}
+      {!collapsed && props.availableOrganizations && props.activeOrganizationId && (
+        <div className="px-4 py-3 border-b border-gray-200">
+          <form action="/api/organizations/switch" method="POST" className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Organization</label>
+            <select
+              name="organizationId"
+              defaultValue={props.activeOrganizationId}
+              onChange={(e) => {
+                fetch("/api/organizations/switch", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ organizationId: e.target.value })
+                }).then(() => window.location.reload());
+              }}
+              className="w-full text-sm py-1.5 px-2 bg-gray-50 border border-gray-200 rounded-lg text-gray-800 font-medium cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              {props.availableOrganizations.map(org => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </form>
+        </div>
       )}
 
       {/* Nav */}
@@ -263,7 +306,8 @@ function SidebarLayout({ children, user, orgName }: Omit<ShellProps, "navLayout"
 
 // ─── Top Nav layout ─────────────────────────────────────────────────────────
 
-function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">) {
+function TopNavLayout(props: Omit<ShellProps, "navLayout">) {
+  const { children, user, orgName, activeOrganizationId, availableOrganizations } = props;
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -279,11 +323,33 @@ function TopNavLayout({ children, user, orgName }: Omit<ShellProps, "navLayout">
             <div className="flex items-center shrink-0">
               <Link href="/dashboard" className="flex items-center gap-2">
                 <img src="/icon.png" alt="BulkyMailer" width={28} height={28} className="h-7 w-7 object-contain" />
-                <span className="font-extrabold text-base tracking-tight text-[#111827]">
+                <span className="font-extrabold text-base tracking-tight text-[#111827] hidden sm:block">
                   Bulky<span className="text-indigo-600">Mailer</span>
                 </span>
               </Link>
             </div>
+
+            {/* Org Switcher for TopNav */}
+            {availableOrganizations && activeOrganizationId && (
+              <div className="hidden sm:flex items-center pl-4 border-l border-gray-200 ml-2">
+                <select
+                  name="organizationId"
+                  defaultValue={activeOrganizationId}
+                  onChange={(e) => {
+                    fetch("/api/organizations/switch", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ organizationId: e.target.value })
+                    }).then(() => window.location.reload());
+                  }}
+                  className="text-sm py-1 pl-2 pr-6 bg-transparent border-none text-gray-700 font-medium cursor-pointer focus:ring-0"
+                >
+                  {availableOrganizations.map(org => (
+                    <option key={org.id} value={org.id}>{org.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-1 flex-1 overflow-x-auto">
