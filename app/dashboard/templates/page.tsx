@@ -32,8 +32,8 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'MY_TEMPLATES' | 'PUBLIC'>('MY_TEMPLATES')
-  
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [duplicating, setDuplicating] = useState<string | null>(null)
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
   const [confirmInput, setConfirmInput] = useState('')
@@ -64,6 +64,7 @@ export default function TemplatesPage() {
       if (res.ok) {
         const data = await res.json()
         setTemplates(data.templates || [])
+        setIsSuperAdmin(data.isSuperAdmin || false)
       }
     } catch (e) {
       console.error(e)
@@ -148,7 +149,10 @@ export default function TemplatesPage() {
               width: '600px',
               height: '800px',
               transform: 'scale(0.333)',
-              transformOrigin: 'top left',
+              transformOrigin: 'top center',
+              position: 'absolute',
+              left: '50%',
+              marginLeft: '-300px',
               pointerEvents: 'none',
               border: 'none',
             }}
@@ -160,9 +164,14 @@ export default function TemplatesPage() {
             {!isPublic ? (
               <Link href={`/dashboard/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit</Link>
             ) : (
-              <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition disabled:opacity-50">
-                {duplicating === template.id ? 'Copying...' : 'Use Template'}
-              </button>
+              <>
+                {isSuperAdmin && (
+                  <Link href={`/admin/templates/${template.id}/edit`} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition">Edit (Admin)</Link>
+                )}
+                <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-semibold rounded-lg shadow hover:bg-indigo-700 transition disabled:opacity-50">
+                  {duplicating === template.id ? 'Copying...' : 'Use Template'}
+                </button>
+              </>
             )}
           </div>
 
@@ -204,6 +213,11 @@ export default function TemplatesPage() {
                   {!isPublic && (
                     <Link href={`/dashboard/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
                       Edit Template
+                    </Link>
+                  )}
+                  {isPublic && isSuperAdmin && (
+                    <Link href={`/admin/templates/${template.id}/edit`} className="block w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 transition">
+                      Edit Template (Admin)
                     </Link>
                   )}
                   <button onClick={() => handleDuplicate(template.id)} disabled={duplicating === template.id} className="w-full text-left px-4 py-2 text-xs font-medium text-[#111827] hover:bg-gray-50 disabled:opacity-50 transition">

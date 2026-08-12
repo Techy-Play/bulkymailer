@@ -29,7 +29,9 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: "desc" }
     });
 
-    return NextResponse.json({ templates });
+    const user = await db.user.findUnique({ where: { id: userId }, select: { isSuperAdmin: true } });
+
+    return NextResponse.json({ templates, isSuperAdmin: user?.isSuperAdmin || false });
   } catch (err) {
     console.error("[templates_GET]", err);
     return NextResponse.json({ error: "Failed to fetch templates" }, { status: 500 });

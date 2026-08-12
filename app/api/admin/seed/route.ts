@@ -18,6 +18,15 @@ export async function GET() {
   let failedCount = 0;
   const errors = [];
 
+  // Clear existing public templates
+  console.log('Clearing existing public templates...');
+  await prisma.template.deleteMany({
+    where: {
+      userId: null,
+      organizationId: null
+    }
+  });
+
   for (const t of templates) {
     try {
       const jsonTree = t.jsonTree;
