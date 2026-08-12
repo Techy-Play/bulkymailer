@@ -98,7 +98,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
           },
           uiTheme: "light",
           customBlocks: [advancedImageBlock],
-          paletteBlocks: ['section', 'title', 'paragraph', 'custom:advanced_image', 'button', 'divider', 'spacer', 'social', 'video', 'html', 'menu', 'table', 'countdown'],
+          paletteBlocks: ['section', 'title', 'paragraph', 'image', 'custom:advanced_image', 'button', 'divider', 'spacer', 'social', 'video', 'html', 'menu', 'table', 'countdown'],
           onChange: (content) => {
             setIsDirty(true)
             
