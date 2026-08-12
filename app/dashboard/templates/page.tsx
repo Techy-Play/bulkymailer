@@ -32,7 +32,6 @@ export default function TemplatesPage() {
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [activeTab, setActiveTab] = useState<'MY_TEMPLATES' | 'PUBLIC'>('MY_TEMPLATES')
-  const [activeCategory, setActiveCategory] = useState<string>('ALL')
   
   const [previewTemplate, setPreviewTemplate] = useState<Template | null>(null)
   const [duplicating, setDuplicating] = useState<string | null>(null)
@@ -108,8 +107,6 @@ export default function TemplatesPage() {
     }
   }
 
-  const categories = ['ALL', 'NEWSLETTER', 'PROMOTIONAL', 'PERSONALIZED', 'GENERAL', 'TRANSACTIONAL', 'WELCOME', 'PRODUCT', 'EVENT', 'E_COMMERCE', 'SECURITY', 'ENGAGEMENT', 'SEASONAL']
-
   // Split into personal and public
   const currentViewTemplates = activeTab === 'MY_TEMPLATES' 
     ? templates.filter(t => t.userId !== null) 
@@ -117,9 +114,7 @@ export default function TemplatesPage() {
 
   const filteredTemplates = currentViewTemplates.filter(t => {
     const s = search.toLowerCase()
-    const matchesSearch = t.name.toLowerCase().includes(s) || (t.description?.toLowerCase().includes(s)) || (t.category.toLowerCase().includes(s))
-    const matchesCategory = activeCategory === 'ALL' || t.category === activeCategory
-    return matchesSearch && matchesCategory
+    return t.name.toLowerCase().includes(s) || (t.description?.toLowerCase().includes(s)) || (t.category.toLowerCase().includes(s))
   })
 
   // Feature templates: push featured ones to top in Public Templates tab
@@ -180,7 +175,7 @@ export default function TemplatesPage() {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-[#111827] truncate">{template.name}</p>
-              <p className="text-xs text-[#6B7280] mt-0.5">{template.category.replace('_', ' ')} · {isPublic ? 'System' : relativeTime(template.createdAt)}</p>
+              <p className="text-xs text-[#6B7280] mt-0.5">{isPublic ? 'System' : relativeTime(template.createdAt)}</p>
               {template.description && (
                 <p className="text-xs text-[#6B7280] mt-1 truncate">{template.description}</p>
               )}
@@ -244,13 +239,13 @@ export default function TemplatesPage() {
       {/* Tabs */}
       <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl w-fit">
         <button
-          onClick={() => { setActiveTab('MY_TEMPLATES'); setActiveCategory('ALL'); }}
+          onClick={() => setActiveTab('MY_TEMPLATES')}
           className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'MY_TEMPLATES' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
         >
           My Templates
         </button>
         <button
-          onClick={() => { setActiveTab('PUBLIC'); setActiveCategory('ALL'); }}
+          onClick={() => setActiveTab('PUBLIC')}
           className={`px-6 py-2 text-sm font-semibold rounded-lg transition-colors ${activeTab === 'PUBLIC' ? 'bg-white text-[#111827] shadow-sm' : 'text-gray-500 hover:text-gray-900'}`}
         >
           Public Templates
@@ -260,7 +255,7 @@ export default function TemplatesPage() {
       {/* Toolbar */}
       <div className="bg-white border border-gray-200 rounded-2xl p-4 flex flex-col sm:flex-row gap-4 items-center shadow-sm">
         {/* Search */}
-        <div className="relative w-full sm:max-w-xs">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6B7280]" />
           <input 
             type="text" 
@@ -269,23 +264,6 @@ export default function TemplatesPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-9 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-[#111827] focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 focus:outline-none transition"
           />
-        </div>
-        
-        {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-          {categories.map(cat => (
-            <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`whitespace-nowrap px-4 py-2 text-sm font-medium rounded-xl transition ${
-                activeCategory === cat
-                  ? 'bg-indigo-50 text-indigo-700'
-                  : 'text-[#6B7280] hover:bg-gray-50 hover:text-[#111827]'
-              }`}
-            >
-              {cat === 'ALL' ? 'All' : cat.replace('_', ' ').charAt(0) + cat.replace('_', ' ').slice(1).toLowerCase()}
-            </button>
-          ))}
         </div>
       </div>
 
@@ -303,17 +281,17 @@ export default function TemplatesPage() {
       ) : (
         <div className="py-24 flex flex-col items-center justify-center bg-white border border-gray-200 rounded-2xl shadow-sm">
           <div className="w-16 h-16 bg-gray-50 rounded-2xl flex items-center justify-center mb-4 border border-gray-100">
-            {search || activeCategory !== 'ALL' ? <SearchX className="w-8 h-8 text-[#6B7280]" /> : <FileText className="w-8 h-8 text-[#6B7280]" />}
+            {search ? <SearchX className="w-8 h-8 text-[#6B7280]" /> : <FileText className="w-8 h-8 text-[#6B7280]" />}
           </div>
           <h3 className="text-lg font-bold text-[#111827] mb-2">No templates found</h3>
           <p className="text-sm text-[#6B7280] mb-6">
-            {search || activeCategory !== 'ALL' 
-              ? 'Try adjusting your filters or search term' 
+            {search
+              ? 'Try adjusting your search term' 
               : activeTab === 'MY_TEMPLATES' 
                 ? 'Create your first email template to get started' 
                 : 'No public templates available'}
           </p>
-          {activeTab === 'MY_TEMPLATES' && !(search || activeCategory !== 'ALL') && (
+          {activeTab === 'MY_TEMPLATES' && !search && (
             <Link href="/dashboard/templates/new" className="px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition shadow-sm">
               Create your first template
             </Link>
@@ -381,7 +359,6 @@ export default function TemplatesPage() {
           <div className="flex items-center justify-between p-4 bg-white border-b border-gray-200">
             <div>
               <h3 className="font-bold text-[#111827]">{previewTemplate.name}</h3>
-              <p className="text-sm text-[#6B7280]">{previewTemplate.category}</p>
             </div>
             
             <div className="flex items-center gap-1 bg-gray-50 p-1 rounded-xl border border-gray-200">
