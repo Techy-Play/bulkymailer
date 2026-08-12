@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { CampaignStatus } from "@/app/generated/prisma/enums";
 
@@ -8,8 +9,14 @@ export async function GET(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "campaign.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const campaigns = await db.campaign.findMany({
-      where: { userId },
+      where: { organizationId: orgId },
       include: {
         template: { select: { name: true } },
         contactList: { select: { name: true } },
@@ -30,11 +37,18 @@ export async function POST(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "campaign.create");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { subject, campaignName, templateId, contactListId, senderProfileId, htmlSnapshot } = await req.json();
 
     const campaign = await db.campaign.create({
       data: {
-        userId,
+        userId, // retain attribution to creator
+        organizationId: orgId, // multi-tenant boundary
         subject: subject || campaignName || "Untitled Campaign",
         campaignName: campaignName || subject || "Untitled Campaign",
         templateId: templateId || null,

@@ -27,6 +27,30 @@ enum UserStatus {
   SUSPENDED
 }
 
+enum OrgRole {
+  OWNER
+  ADMIN
+  MARKETING_MANAGER
+  CAMPAIGN_MANAGER
+  CONTENT_MANAGER
+  SALES
+  ANALYST
+  VIEWER
+}
+
+enum MemberStatus {
+  PENDING
+  ACTIVE
+  SUSPENDED
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
 enum TeamSize {
   SOLO
   TWO_TO_FIVE
@@ -89,6 +113,18 @@ model Organization {
   updatedAt    DateTime @updatedAt
 
   users        User[]
+  
+  // New RBAC / Multi-tenant relations
+  memberships    OrganizationMembership[]
+  invitations    OrganizationInvitation[]
+  
+  // Tenanted Resources
+  contactLists   ContactList[]
+  contacts       Contact[]
+  senderProfiles SenderProfile[]
+  templates      Template[]
+  campaigns      Campaign[]
+  mediaAssets    MediaAsset[]
 }
 
 // ---------------------------------------------------------------------------
@@ -136,12 +172,21 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  // Optional org membership
+  // Optional org membership (LEGACY - Do not remove yet)
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
+  // Platform Level Role
+  isSuperAdmin Boolean @default(false)
+
+  // Multi-tenant Memberships
+  memberships OrganizationMembership[]
+
   // Auth tokens (kept for resend compatibility)
   verificationTokens EmailVerificationToken[]
+
+  // Invitations created by this user
+  invitationsSent OrganizationInvitation[] @relation("InvitedBy")
 
   // Contact lists
   contactLists ContactList[]
@@ -169,6 +214,78 @@ model EmailVerificationToken {
 }
 
 // ---------------------------------------------------------------------------
+// Organization Membership — Multi-tenant RBAC
+// ---------------------------------------------------------------------------
+
+model OrganizationMembership {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  role           OrgRole      @default(VIEWER)
+  status         MemberStatus @default(ACTIVE)
+  joinedAt       DateTime     @default(now())
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+  @@index([organizationId])
+}
+
+// ---------------------------------------------------------------------------
+// Organization Invitations
+// ---------------------------------------------------------------------------
+
+model OrganizationInvitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  email          String
+  role           OrgRole          @default(VIEWER)
+  status         InvitationStatus @default(PENDING)
+  invitedById    String
+  tokenHash      String           @unique
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy      User             @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@index([email])
+  @@index([organizationId])
+  @@index([tokenHash])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ---------------------------------------------------------------------------
+// Audit Log
+// ---------------------------------------------------------------------------
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  actorUserId    String
+  targetUserId   String?
+  organizationId String?
+  action         String
+  resourceType   String
+  resourceId     String?
+  metadata       Json?
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime @default(now())
+
+  @@index([actorUserId])
+  @@index([organizationId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
 // Contact Lists — user-owned lists of contacts
 // ---------------------------------------------------------------------------
 
@@ -177,8 +294,11 @@ model ContactList {
   name        String
   description String?
 
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   contacts    Contact[]
 
@@ -202,6 +322,9 @@ model Contact {
 
   // Any extra columns from CSV stored as key-value JSON
   customFields Json?
+
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   listId       String
   list         ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
@@ -252,6 +375,9 @@ model SenderProfile {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   fromName  String
   fromEmail String
   replyTo   String?
@@ -281,6 +407,9 @@ model Template {
   slug        String?
   userId      String?          // null = system global
   user        User?            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
   name        String
   category    TemplateCategory @default(GENERAL)
@@ -331,6 +460,9 @@ model Campaign {
   id                   String         @id @default(cuid())
   userId               String
   user                 User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId       String?
+  organization         Organization?  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
   templateId           String?
   template             Template?      @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -409,6 +541,9 @@ model MediaAsset {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   
   url       String   // Cloudinary URL
   filename  String

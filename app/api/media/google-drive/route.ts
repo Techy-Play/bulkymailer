@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { uploadTemplateImageToCloudinary } from "@/lib/cloudinary";
 
@@ -9,6 +10,12 @@ export async function POST(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "media.upload");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { fileId, accessToken, filename } = await req.json();
 
@@ -49,6 +56,7 @@ export async function POST(req: NextRequest) {
     await db.mediaAsset.create({
       data: {
         userId,
+        organizationId: orgId,
         url,
         filename: filename || `gdrive-${uniqueId}`,
         width,

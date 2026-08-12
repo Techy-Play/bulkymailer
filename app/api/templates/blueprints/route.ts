@@ -5,9 +5,7 @@ export const revalidate = 86400; // Cache for 24 hours
 
 export async function GET() {
   try {
-    const { renderToMjml } = await import('@templatical/renderer');
-    const mjml2html = (await import('mjml')).default;
-
+    const { compileTemplateToHtml } = await import('@/lib/templates/compile');
     const previews = await Promise.all(blueprints.map(async (bp) => {
       if (bp.id === 'blank') {
         return {
@@ -26,15 +24,15 @@ export async function GET() {
 
       try {
         const content = bp.getContent();
-        const mjml = await renderToMjml(content);
-        const compiled = await mjml2html(mjml);
+        const { compileTemplateToHtml } = await import('@/lib/templates/compile');
+        const compiledHtml = await compileTemplateToHtml(content);
         
         return {
           id: bp.id,
           name: bp.name,
           description: bp.description,
           category: bp.category,
-          htmlContent: compiled.html
+          htmlContent: compiledHtml || ''
         };
       } catch (err) {
         console.error(`Failed to compile blueprint ${bp.id}:`, err);

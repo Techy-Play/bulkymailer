@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
-async function verifyListOwnership(listId: string, userId: string) {
-  return db.contactList.findFirst({ where: { id: listId, userId } });
+async function verifyListOwnership(listId: string, orgId: string) {
+  return db.contactList.findFirst({ where: { id: listId, organizationId: orgId } });
 }
 
 type Params = Promise<{ id: string; contactId: string }>;
@@ -14,8 +15,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Params }) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.edit");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id: listId, contactId } = await params;
-    const list = await verifyListOwnership(listId, userId);
+    const list = await verifyListOwnership(listId, orgId);
     if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
 
     const body = await req.json();
@@ -37,8 +44,14 @@ export async function DELETE(req: NextRequest, { params }: { params: Params }) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.delete");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id: listId, contactId } = await params;
-    const list = await verifyListOwnership(listId, userId);
+    const list = await verifyListOwnership(listId, orgId);
     if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
 
     await db.contact.delete({

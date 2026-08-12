@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { sendEmail, renderTemplateMergeTags } from "@/lib/mailer";
 
@@ -7,6 +8,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   try {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { id } = await params;
     const body = await req.json();
@@ -19,7 +26,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const template = await db.template.findFirst({
       where: {
         id,
-        OR: [{ userId: null }, { userId }]
+        OR: [{ userId: null }, { organizationId: orgId }]
       }
     });
 

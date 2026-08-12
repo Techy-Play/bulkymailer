@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { TemplateCategory } from "@/app/generated/prisma/enums";
 
@@ -10,13 +11,19 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     // Fetch system templates (userId = null) and user templates
     const templates = await db.template.findMany({
       where: {
         generation: 'MODERN',
         OR: [
-          { userId: null },
-          { userId }
+          { userId: null }, // Public templates
+          { organizationId: orgId } // Tenanted templates
         ]
       },
       orderBy: { createdAt: "desc" }
@@ -36,6 +43,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.create");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { name, category, htmlContent, jsonTree, description, previewText } = await req.json();
 
     if (!name) {
@@ -51,11 +64,9 @@ export async function POST(req: NextRequest) {
     let finalHtml = htmlContent;
     if (jsonTree && !Array.isArray(jsonTree)) {
       try {
-        const { renderToMjml } = await import('@templatical/renderer');
-        const mjml2html = (await import('mjml')).default;
-        const mjml = await renderToMjml(jsonTree);
-        const compiled = await mjml2html(mjml);
-        finalHtml = compiled.html;
+        const { compileTemplateToHtml } = await import('@/lib/templates/compile');
+        const compiled = await compileTemplateToHtml(jsonTree);
+        if (compiled) finalHtml = compiled;
       } catch (e) {
         console.error("Failed to compile default MJML on create", e);
       }
@@ -73,7 +84,8 @@ export async function POST(req: NextRequest) {
         jsonTree: jsonTree || undefined,
         description,
         previewText,
-        userId
+        userId,
+        organizationId: orgId
       }
     });
 

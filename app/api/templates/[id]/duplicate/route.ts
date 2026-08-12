@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -9,10 +10,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const { id } = await params;
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.create");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const existing = await db.template.findFirst({
       where: {
         id,
-        OR: [{ userId: null }, { userId }]
+        OR: [{ userId: null }, { organizationId: orgId }]
       }
     });
 
@@ -28,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let suffixCounter = 2;
     while (!isUnique) {
       const collision = await db.template.findFirst({
-        where: { userId, name: newName }
+        where: { organizationId: orgId, name: newName }
       });
       if (!collision) {
         isUnique = true;
@@ -43,7 +50,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
     const newTemplate = await db.template.create({
       data: {
-        userId,
+        userId, // track creator
+        organizationId: orgId,
         name: newName,
         category: existing.category,
         generation: 'MODERN',

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, hashPassword } from '@/lib/auth'
+import { requireSuperAdmin } from '@/lib/auth/organization-context'
 import { z } from 'zod'
 
 const createUserSchema = z.object({
@@ -13,8 +14,8 @@ const createUserSchema = z.object({
 
 export async function POST(req: Request) {
   try {
-    const user = await getSessionUser()
-    if (!user || user.role !== 'ADMIN') {
+    const user = await requireSuperAdmin()
+    if (!user) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { setSession } from "@/lib/auth";
+import { setActiveOrganizationId } from "@/lib/auth/organization-context";
 import { sendWelcomeEmail } from "@/lib/mailer";
 
 const schema = z.object({
@@ -111,6 +112,15 @@ export async function POST(req: NextRequest) {
 
     // Set session
     await setSession(user.id);
+
+    // Initialize organization context if the user has exactly one active organization
+    const activeMemberships = await db.organizationMembership.findMany({
+      where: { userId: user.id, status: "ACTIVE" }
+    });
+    
+    if (activeMemberships.length === 1) {
+      await setActiveOrganizationId(activeMemberships[0].organizationId);
+    }
 
     // Send welcome email (non-blocking)
     sendWelcomeEmail(email, user.firstName).catch((err) =>

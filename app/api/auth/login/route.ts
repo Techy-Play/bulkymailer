@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { verifyPassword, setSession } from "@/lib/auth";
+import { setActiveOrganizationId } from "@/lib/auth/organization-context";
 
 const schema = z.object({
   email: z.string().email().toLowerCase().trim(),
@@ -70,6 +71,15 @@ export async function POST(req: NextRequest) {
 
     // Set HttpOnly session cookie
     await setSession(user.id);
+
+    // Initialize organization context if the user has exactly one active organization
+    const activeMemberships = await db.organizationMembership.findMany({
+      where: { userId: user.id, status: "ACTIVE" }
+    });
+    
+    if (activeMemberships.length === 1) {
+      await setActiveOrganizationId(activeMemberships[0].organizationId);
+    }
 
     // Redirect destination
     const redirect = user.isOnboardingCompleted ? "/dashboard" : "/onboarding";

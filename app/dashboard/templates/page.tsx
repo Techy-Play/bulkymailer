@@ -150,9 +150,9 @@ export default function TemplatesPage() {
             title={template.name}
             scrolling="no"
             style={{
-              width: '800px',
-              height: '640px',
-              transform: 'scale(0.25)',
+              width: '600px',
+              height: '800px',
+              transform: 'scale(0.333)',
               transformOrigin: 'top left',
               pointerEvents: 'none',
               border: 'none',
@@ -272,7 +272,7 @@ export default function TemplatesPage() {
         </div>
         
         {/* Category Tabs */}
-        <div className="flex gap-2 overflow-x-auto w-full hide-scrollbar">
+        <div className="flex gap-2 overflow-x-auto w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {categories.map(cat => (
             <button
               key={cat}

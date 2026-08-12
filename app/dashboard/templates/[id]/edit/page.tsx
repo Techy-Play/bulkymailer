@@ -21,6 +21,7 @@ import '@templatical/editor/style.css'
 import { advancedImageBlock } from '@/lib/blocks/advanced-image'
 import { ImageCropModal } from '@/components/editor/image-crop-modal'
 import { buildAdvancedImageUrl } from '@/lib/cloudinary-utils'
+import { safeStringify } from '@/lib/safe-json'
 
 export const dynamic = 'force-dynamic'
 
@@ -106,7 +107,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
             let cropImageUrl = "";
             let shouldUpdateContent = false;
             
-            const newContent = JSON.parse(JSON.stringify(content));
+            const newContent = JSON.parse(safeStringify(content));
             
             const checkBlocks = (blocks: any[]) => {
                for (const block of blocks) {
@@ -187,7 +188,7 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
   const handleApplyCrop = (cropParams: { width: number, height: number, x: number, y: number }) => {
     if (!cropTarget || !editorInstanceRef.current) return;
     const content = editorInstanceRef.current.getContent();
-    const newContent = JSON.parse(JSON.stringify(content));
+    const newContent = JSON.parse(safeStringify(content));
     
     let updated = false;
     const applyToBlock = (blocks: any[]) => {
@@ -223,7 +224,6 @@ export default function TemplateEditorPage({ params }: { params: Promise<{ id: s
          return false
       }
 
-      const { safeStringify } = await import('@/lib/safe-json')
       const res = await fetch(`/api/templates/${templateId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

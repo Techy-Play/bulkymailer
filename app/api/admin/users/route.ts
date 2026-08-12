@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { getSessionUser } from '@/lib/auth'
+import { requireSuperAdmin } from '@/lib/auth/organization-context'
 
 export async function GET(req: Request) {
   try {
-    const user = await getSessionUser()
-    if (!user || user.role !== 'ADMIN') {
+    const user = await requireSuperAdmin()
+    if (!user) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
@@ -30,7 +30,11 @@ export async function GET(req: Request) {
     const users = await db.user.findMany({
       where,
       orderBy: { createdAt: 'desc' },
-      include: { organization: true },
+      include: {
+        memberships: {
+          include: { organization: true }
+        }
+      },
     })
 
     return NextResponse.json(users)

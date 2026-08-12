@@ -143,3 +143,13 @@ export function injectFakeTestModel() {
     priority: -1 // Top priority so it gets picked first
   });
 }
+
+export function getRegistryStatus() {
+  return {
+    cachedModels,
+    health: Array.from(healthRegistry.entries()).map(([id, stats]) => ({
+      id,
+      ...stats
+    }))
+  }
+}

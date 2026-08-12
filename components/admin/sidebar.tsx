@@ -2,15 +2,22 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { LayoutDashboard, Users, LogOut } from 'lucide-react'
+import { LayoutDashboard, Users, Building2, Send, Contact, FileImage, Image as ImageIcon, ShieldAlert, Cpu, LogOut } from 'lucide-react'
 
 export function AdminSidebar({ adminName }: { adminName: string }) {
   const pathname = usePathname()
   const router = useRouter()
 
   const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
+    { name: 'Overview', href: '/admin', icon: LayoutDashboard },
     { name: 'Users', href: '/admin/users', icon: Users },
+    { name: 'Organizations', href: '/admin/organizations', icon: Building2 },
+    { name: 'Campaigns', href: '/admin/campaigns', icon: Send },
+    { name: 'Contacts', href: '/admin/contacts', icon: Contact },
+    { name: 'Templates', href: '/admin/templates', icon: FileImage },
+    { name: 'Media', href: '/admin/media', icon: ImageIcon },
+    { name: 'Audit Logs', href: '/admin/audit-logs', icon: ShieldAlert },
+    { name: 'AI Providers', href: '/admin/system/ai', icon: Cpu },
   ]
 
   const handleSignOut = async () => {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import { getSessionUser, hashPassword } from '@/lib/auth'
+import { requireSuperAdmin } from '@/lib/auth/organization-context'
 
 function generateTempPassword() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*'
@@ -13,8 +14,8 @@ function generateTempPassword() {
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = await getSessionUser()
-    if (!user || user.role !== 'ADMIN') {
+    const user = await requireSuperAdmin()
+    if (!user) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 

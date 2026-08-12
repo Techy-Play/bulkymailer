@@ -109,9 +109,9 @@ export default function NewTemplatePage() {
                     scrolling="no"
                     tabIndex={-1}
                     style={{
-                      width: '800px',
-                      height: '640px',
-                      transform: 'scale(0.35)',
+                      width: '600px',
+                      height: '800px',
+                      transform: 'scale(0.4)',
                       transformOrigin: 'top left',
                       pointerEvents: 'none',
                       border: 'none',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { uploadLogoToCloudinary } from "@/lib/cloudinary";
 
@@ -10,17 +11,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { organizationId: true },
-    });
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
 
-    if (!user?.organizationId) {
-      return NextResponse.json(
-        { error: "No organization found for this account." },
-        { status: 404 }
-      );
-    }
+    const __perm = await requirePermission(orgId, "organization.settings");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
@@ -49,12 +44,12 @@ export async function POST(req: NextRequest) {
     const url = await uploadLogoToCloudinary(
       buffer,
       "bulkymailer/logos",
-      `org_${user.organizationId}`
+      `org_${orgId}`
     );
 
     // Update organization logoUrl
     await db.organization.update({
-      where: { id: user.organizationId },
+      where: { id: orgId },
       data: { logoUrl: url },
     });
 

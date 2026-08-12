@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId, checkAndIncrementEmailQuota } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { CampaignStatus } from "@/app/generated/prisma/enums";
 import { sendEmail, renderTemplateMergeTags } from "@/lib/mailer";
@@ -9,11 +10,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "campaign.send");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id: campaignId } = await params;
 
     // 1. Fetch Campaign with Template, Sender Profile and Contacts
     const campaign = await db.campaign.findFirst({
-      where: { id: campaignId, userId },
+      where: { id: campaignId, organizationId: orgId },
       include: {
         template: true,
         senderProfile: true,

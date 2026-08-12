@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
 function getRelativeTime(dateInput: Date | string): string {
@@ -22,6 +23,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "analytics.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { searchParams } = new URL(req.url);
     const campaignId = searchParams.get("campaignId");
     const daysParam = parseInt(searchParams.get("days") || "15", 10);
@@ -29,7 +36,7 @@ export async function GET(req: NextRequest) {
 
     // 1. Fetch user's actual campaigns from DB
     const userCampaigns = await db.campaign.findMany({
-      where: { userId: user.id },
+      where: { organizationId: orgId },
       select: {
         id: true,
         campaignName: true,
@@ -56,7 +63,7 @@ export async function GET(req: NextRequest) {
     const userContacts = await db.contact.findMany({
       where: {
         list: {
-          userId: user.id,
+          organizationId: orgId,
         },
       },
       select: {

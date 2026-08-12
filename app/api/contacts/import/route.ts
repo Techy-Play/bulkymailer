@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { parse } from "csv-parse/sync";
 import * as XLSX from "xlsx";
@@ -58,14 +59,13 @@ function parseRows(rawRows: Record<string, string>[]): ParsedRow[] {
     if (lastIdx >= 0) parsed.lastName = row[keys[lastIdx]]?.trim();
     if (phoneIdx >= 0) parsed.phone = row[keys[phoneIdx]]?.trim();
 
-    // Extra columns → customFields
     const customFields: Record<string, string> = {};
-    keys.forEach((key, i) => {
-      if (i === emailIdx || i === firstIdx || i === lastIdx || i === phoneIdx) return;
-      const val = row[key]?.trim();
-      if (val) customFields[key] = val;
-    });
-
+    for (const [idx, name] of Object.entries(headerMap)) {
+      if (!knownFields.includes(name)) {
+        const val = row[keys[Number(idx)]]?.trim();
+        if (val) customFields[name] = val;
+      }
+    }
     if (Object.keys(customFields).length > 0) {
       parsed.customFields = customFields;
     }
@@ -83,6 +83,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.import");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const listId = formData.get("listId") as string | null;
@@ -96,12 +102,12 @@ export async function POST(req: NextRequest) {
     let targetListId = listId;
     if (!targetListId && newListName) {
       const list = await db.contactList.create({
-        data: { name: newListName.trim(), userId },
+        data: { name: newListName.trim(), userId, organizationId: orgId },
       });
       targetListId = list.id;
     } else if (targetListId) {
       const list = await db.contactList.findFirst({
-        where: { id: targetListId, userId },
+        where: { id: targetListId, organizationId: orgId },
       });
       if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
     } else {

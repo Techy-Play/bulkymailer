@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
@@ -9,19 +10,25 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "media.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { searchParams } = new URL(req.url);
     const limit = parseInt(searchParams.get("limit") || "50", 10);
     const offset = parseInt(searchParams.get("offset") || "0", 10);
 
-    const user = await db.user.findUnique({
-      where: { id: userId },
-      select: { organization: { select: { logoUrl: true } } }
+    const org = await db.organization.findUnique({
+      where: { id: orgId },
+      select: { logoUrl: true }
     });
 
-    const orgLogoUrl = user?.organization?.logoUrl || null;
+    const orgLogoUrl = org?.logoUrl || null;
 
     const mediaAssets = await db.mediaAsset.findMany({
-      where: { userId },
+      where: { organizationId: orgId },
       orderBy: { createdAt: "desc" },
       take: limit,
       skip: offset,

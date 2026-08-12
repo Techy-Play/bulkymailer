@@ -1,8 +1,10 @@
 import { TemplateJSONNode, EditorCommand, AIDeltaOperation } from './types';
 import { EditorEventBus } from './events';
 
+import { safeStringify } from '../safe-json';
+
 function deepClone<T>(obj: T): T {
-  return JSON.parse(JSON.stringify(obj));
+  return JSON.parse(safeStringify(obj));
 }
 
 function findNodeById(root: TemplateJSONNode, id: string): TemplateJSONNode | null {

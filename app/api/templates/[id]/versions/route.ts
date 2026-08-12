@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSessionUserId } from '@/lib/auth';
+import { getActiveOrganizationId, requirePermission } from '@/lib/auth/organization-context';
 
 export async function GET(
   request: NextRequest,
@@ -12,13 +13,19 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id: templateId } = await params;
 
     const template = await db.template.findUnique({
       where: { id: templateId },
     });
 
-    if (!template || template.userId !== userId) {
+    if (!template || template.organizationId !== orgId) {
       return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 });
     }
 
@@ -44,6 +51,12 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "template.edit");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id: templateId } = await params;
     const { versionName, htmlContent, jsonTree } = await request.json();
 
@@ -51,7 +64,7 @@ export async function POST(
       where: { id: templateId },
     });
 
-    if (!template || template.userId !== userId) {
+    if (!template || template.organizationId !== orgId) {
       return NextResponse.json({ error: 'Not found or unauthorized' }, { status: 404 });
     }
 

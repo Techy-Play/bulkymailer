@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 import { z } from "zod";
 
@@ -10,8 +11,14 @@ export async function GET(req: NextRequest) {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "organization.settings");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const profiles = await db.senderProfile.findMany({
-      where: { userId },
+      where: { organizationId: orgId },
       orderBy: [
         { isDefault: "desc" },
         { createdAt: "desc" }
@@ -29,6 +36,12 @@ export async function POST(req: NextRequest) {
   try {
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "organization.settings");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const { fromName, fromEmail, replyTo, isDefault } = await req.json();
 
@@ -50,7 +63,7 @@ export async function POST(req: NextRequest) {
 
     if (isDefault) {
       await db.senderProfile.updateMany({
-        where: { userId },
+        where: { organizationId: orgId },
         data: { isDefault: false }
       });
     }
@@ -58,6 +71,7 @@ export async function POST(req: NextRequest) {
     const profile = await db.senderProfile.create({
       data: {
         userId,
+        organizationId: orgId,
         fromName,
         fromEmail,
         replyTo,

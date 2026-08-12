@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSessionUserId } from "@/lib/auth";
+import { getActiveOrganizationId, requirePermission } from "@/lib/auth/organization-context";
 import { db } from "@/lib/db";
 
-async function getListOrFail(listId: string, userId: string) {
+async function getListOrFail(listId: string, orgId: string) {
   const list = await db.contactList.findFirst({
-    where: { id: listId, userId },
+    where: { id: listId, organizationId: orgId },
   });
   return list;
 }
@@ -19,13 +20,19 @@ export async function GET(
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.view");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id } = await params;
     const url = new URL(req.url);
     const page = Math.max(1, Number(url.searchParams.get("page") ?? "1"));
     const perPage = 50;
     const search = url.searchParams.get("search") ?? "";
 
-    const list = await getListOrFail(id, userId);
+    const list = await getListOrFail(id, orgId);
     if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
 
     const where = {
@@ -72,8 +79,14 @@ export async function PUT(
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.edit");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id } = await params;
-    const list = await getListOrFail(id, userId);
+    const list = await getListOrFail(id, orgId);
     if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
 
     const body = await req.json();
@@ -103,8 +116,14 @@ export async function DELETE(
     const userId = await getSessionUserId();
     if (!userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+    const orgId = await getActiveOrganizationId();
+    if (!orgId) return NextResponse.json({ error: "No active organization" }, { status: 403 });
+
+    const __perm = await requirePermission(orgId, "contact.delete");
+    if (!__perm) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
     const { id } = await params;
-    const list = await getListOrFail(id, userId);
+    const list = await getListOrFail(id, orgId);
     if (!list) return NextResponse.json({ error: "List not found" }, { status: 404 });
 
     await db.contactList.delete({ where: { id } });
