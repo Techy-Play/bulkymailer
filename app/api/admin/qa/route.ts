@@ -72,7 +72,7 @@ export async function GET() {
         organizationId: 'test-org-id',
       };
       
-      const newCompiled = await compileTemplateToHtml(userCopyData.jsonTree);
+      const newCompiled = await compileTemplateToHtml(userCopyData.jsonTree as any);
       if (newCompiled === t.htmlContent) {
         passed.editorFidelity++;
       } else {
