@@ -32,13 +32,28 @@ export default async function AdminTemplatesPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {templates.map((template) => (
           <div key={template.id} className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm flex flex-col group">
-            <div className="aspect-[4/3] bg-gray-50 flex items-center justify-center border-b border-gray-100 relative">
+            <div className="relative overflow-hidden bg-gray-50 border-b border-gray-100 rounded-t-2xl" style={{ height: 160 }}>
               {template.generation === 'LEGACY' && (
-                <div className="absolute top-2 right-2 bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                <div className="absolute top-2 right-2 bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider z-10 shadow-sm">
                   Legacy
                 </div>
               )}
-              <FileImage className="w-12 h-12 text-gray-300 group-hover:text-indigo-300 transition-colors" />
+              <iframe
+                srcDoc={template.htmlContent}
+                title={template.name}
+                scrolling="no"
+                style={{
+                  width: '600px',
+                  height: '800px',
+                  transform: 'scale(0.333)',
+                  transformOrigin: 'top center',
+                  position: 'absolute',
+                  left: '50%',
+                  marginLeft: '-300px',
+                  pointerEvents: 'none',
+                  border: 'none',
+                }}
+              />
             </div>
             <div className="p-4 flex-1 flex flex-col">
               <div className="flex justify-between items-start mb-2">
