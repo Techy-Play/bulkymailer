@@ -98,6 +98,11 @@ export async function uploadTemplateImageToCloudinary(
         if (error || !result) {
           reject(error ?? new Error("Cloudinary template image upload failed"));
         } else {
+          resolve({
+            url: result.secure_url,
+            width: result.width,
+            height: result.height,
+          });
         }
       }
     );
