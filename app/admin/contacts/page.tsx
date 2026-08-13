@@ -16,7 +16,8 @@ interface ContactList {
   } | null
   user: {
     id: string
-    name: string
+    firstName: string | null
+    lastName: string | null
     email: string
   }
   _count: {
@@ -56,9 +57,14 @@ function ContactsView() {
 
   const filteredLists = lists.filter(l => {
     const s = search.toLowerCase()
+    const orgName = l.organization?.name || 'Personal Workspace'
+    const userName = `${l.user.firstName || ''} ${l.user.lastName || ''}`.trim()
+    
     return l.name.toLowerCase().includes(s) || 
            (l.description && l.description.toLowerCase().includes(s)) ||
-           l.organization?.name?.toLowerCase().includes(s)
+           orgName.toLowerCase().includes(s) ||
+           userName.toLowerCase().includes(s) ||
+           l.user.email.toLowerCase().includes(s)
   })
 
   return (
@@ -120,10 +126,12 @@ function ContactsView() {
                       {list.description && <div className="text-xs mt-0.5">{list.description}</div>}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {list.organization?.name || 'Global System'}
+                      {list.organization?.name || 'Personal Workspace'}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{list.user.name}</div>
+                      <div className="font-medium text-gray-900">
+                        {list.user.firstName || list.user.lastName ? `${list.user.firstName || ''} ${list.user.lastName || ''}`.trim() : 'Unknown'}
+                      </div>
                       <div className="text-xs text-gray-500">{list.user.email}</div>
                     </td>
                     <td className="px-6 py-4">

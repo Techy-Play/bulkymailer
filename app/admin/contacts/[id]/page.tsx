@@ -22,7 +22,7 @@ interface ListData {
   createdAt: string
   updatedAt: string
   organization: { id: string; name: string } | null
-  user: { id: string; name: string; email: string }
+  user: { id: string; firstName: string | null; lastName: string | null; email: string }
   _count: { contacts: number }
 }
 
@@ -151,11 +151,13 @@ function ContactListDetailClient({ listId }: { listId: string }) {
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Organization</span>
-          <span className="text-sm font-medium text-gray-900 mt-2 truncate">{list.organization?.name || 'Global System'}</span>
+          <span className="text-sm font-medium text-gray-900 mt-2 truncate">{list.organization?.name || 'Personal Workspace'}</span>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Created By</span>
-          <span className="text-sm font-medium text-gray-900 mt-2 truncate">{list.user.name}</span>
+          <span className="text-sm font-medium text-gray-900 mt-2 truncate">
+            {list.user.firstName || list.user.lastName ? `${list.user.firstName || ''} ${list.user.lastName || ''}`.trim() : 'Unknown'}
+          </span>
           <span className="text-xs text-gray-500 truncate">{list.user.email}</span>
         </div>
         <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col">
