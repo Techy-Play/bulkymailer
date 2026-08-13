@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
+import crypto from "crypto";
 
 const SALT_ROUNDS = 12;
 const SESSION_COOKIE = "bm_session";
@@ -10,15 +11,34 @@ const SESSION_MAX_AGE = 60 * 60 * 24 * 7; // 7 days
 // Password helpers
 // ---------------------------------------------------------------------------
 
+function getPrehash(plain: string): string {
+  // Pre-hash password with SHA-256 to bypass bcrypt's 72-byte limit
+  return crypto.createHash("sha256").update(plain, "utf-8").digest("base64");
+}
+
 export async function hashPassword(plain: string): Promise<string> {
-  return bcrypt.hash(plain, SALT_ROUNDS);
+  const prehashed = getPrehash(plain);
+  const hash = await bcrypt.hash(prehashed, SALT_ROUNDS);
+  return `v2:${hash}`;
 }
 
 export async function verifyPassword(
   plain: string,
-  hash: string
+  storedHash: string
 ): Promise<boolean> {
-  return bcrypt.compare(plain, hash);
+  if (storedHash.startsWith("v2:")) {
+    // New v2 scheme: SHA-256 pre-hashed then bcrypt
+    const prehashed = getPrehash(plain);
+    const actualHash = storedHash.slice(3); // remove 'v2:' prefix
+    return bcrypt.compare(prehashed, actualHash);
+  } else {
+    // Legacy scheme: raw bcrypt
+    return bcrypt.compare(plain, storedHash);
+  }
+}
+
+export function needsPasswordUpgrade(storedHash: string): boolean {
+  return !storedHash.startsWith("v2:");
 }
 
 // ---------------------------------------------------------------------------

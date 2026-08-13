@@ -2,7 +2,8 @@ import { db } from '@/lib/db'
 import { requireSuperAdmin } from '@/lib/auth/organization-context'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Users, Send, LayoutTemplate, Settings } from 'lucide-react'
+import { ArrowLeft, Users, Send, LayoutTemplate, Globe, MapPin, Building, Briefcase, CheckCircle2, Clock } from 'lucide-react'
+import Image from 'next/image'
 
 export default async function AdminOrganizationWorkspacePage({ params }: { params: Promise<{ id: string }> }) {
   const admin = await requireSuperAdmin()
@@ -34,6 +35,76 @@ export default async function AdminOrganizationWorkspacePage({ params }: { param
         <div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{org.name} Workspace</h1>
           <p className="mt-1 text-sm text-gray-500">Super Admin access to this organization's data.</p>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200 flex justify-between items-center bg-gray-50/50">
+          <h3 className="text-lg font-semibold text-gray-900">Organization Details</h3>
+        </div>
+        <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="col-span-1 md:col-span-2 flex items-start gap-4">
+            {org.logoUrl ? (
+              <div className="relative w-16 h-16 rounded-xl overflow-hidden border border-gray-200 flex-shrink-0">
+                <Image src={org.logoUrl} alt={org.name} fill className="object-cover" />
+              </div>
+            ) : (
+              <div className="w-16 h-16 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100 flex-shrink-0">
+                <Building className="w-8 h-8" />
+              </div>
+            )}
+            <div>
+              <h4 className="text-lg font-bold text-gray-900">{org.name}</h4>
+              {org.website ? (
+                <a href={org.website} target="_blank" rel="noreferrer" className="text-indigo-600 hover:text-indigo-700 text-sm flex items-center gap-1 mt-1">
+                  <Globe className="w-4 h-4" />
+                  {org.website}
+                </a>
+              ) : (
+                <span className="text-gray-500 text-sm flex items-center gap-1 mt-1">
+                  <Globe className="w-4 h-4" /> No website provided
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                <MapPin className="w-3.5 h-3.5" /> Address
+              </span>
+              <p className="text-sm text-gray-900">
+                {org.addressLine1}
+                {org.addressLine2 && <><br/>{org.addressLine2}</>}
+                <br/>
+                {org.city}, {org.state ? `${org.state}, ` : ''}{org.postalCode}
+                <br/>
+                {org.country}
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+                <Briefcase className="w-3.5 h-3.5" /> Business Info
+              </span>
+              <div className="text-sm text-gray-900 space-y-1.5 mt-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Team Size:</span>
+                  <span className="font-medium">{org.teamSize.replace(/_/g, ' ')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Contacts:</span>
+                  <span className="font-medium">{org.contactRange.replace(/_/g, ' ')}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">E-Commerce:</span>
+                  <span className="font-medium">{org.sellsOnline ? 'Yes' : 'No'}</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

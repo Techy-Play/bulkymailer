@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { verifyPassword, setSession } from "@/lib/auth";
+import { verifyPassword, setSession, needsPasswordUpgrade, hashPassword } from "@/lib/auth";
 import { setActiveOrganizationId } from "@/lib/auth/organization-context";
 
 const schema = z.object({
@@ -48,6 +48,15 @@ export async function POST(req: NextRequest) {
         { error: "Invalid email or password" },
         { status: 401 }
       );
+    }
+    
+    // Transparently upgrade legacy bcrypt hashes to v2 pre-hashed scheme
+    if (needsPasswordUpgrade(user.passwordHash)) {
+      const newHash = await hashPassword(password);
+      await db.user.update({
+        where: { id: user.id },
+        data: { passwordHash: newHash }
+      });
     }
 
     if (user.status === "SUSPENDED") {
