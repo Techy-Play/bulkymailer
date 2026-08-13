@@ -79,6 +79,7 @@ export default async function AcceptInvitationPage({ params }: { params: Promise
         }}
         isLoggedIn={!!user}
         token={token}
+        currentOrganizationName={user?.organization?.name}
       />
     </div>
   );

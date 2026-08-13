@@ -16,9 +16,10 @@ type Props = {
   };
   isLoggedIn: boolean;
   token: string;
+  currentOrganizationName?: string;
 };
 
-export default function AcceptInvitationClient({ invitation, isLoggedIn, token }: Props) {
+export default function AcceptInvitationClient({ invitation, isLoggedIn, token, currentOrganizationName }: Props) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -53,12 +54,23 @@ export default function AcceptInvitationClient({ invitation, isLoggedIn, token }
           </p>
         </div>
 
+        {currentOrganizationName && (
+          <div className="bg-gray-50 rounded-xl p-4 mb-6 border border-gray-200">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Organization Switch Confirmation</h3>
+            <p className="text-sm text-gray-600">
+              You are currently active in <strong>{currentOrganizationName}</strong>. 
+              Accepting this invitation will switch your active organization context to <strong>{invitation.organizationName}</strong>. 
+              You can always switch back later from your dashboard settings.
+            </p>
+          </div>
+        )}
+
         <button
           onClick={() => handleAccept()}
           disabled={loading}
           className="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-xl font-medium transition disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Accept Invitation"}
+          {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "Confirm & Switch Organization"}
           {!loading && <ArrowRight className="w-5 h-5" />}
         </button>
       </div>
