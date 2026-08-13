@@ -104,6 +104,7 @@ export default function CreateAdminPage() {
               name="password"
               required
               minLength={8}
+              maxLength={20}
               value={formData.password}
               onChange={handleChange}
               className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-shadow"

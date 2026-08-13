@@ -105,6 +105,7 @@ function ResetPasswordForm() {
               required
               autoFocus
               minLength={8}
+              maxLength={20}
               className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:outline-none transition"
             />
             <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />
@@ -123,6 +124,7 @@ function ResetPasswordForm() {
               placeholder="••••••••"
               required
               minLength={8}
+              maxLength={20}
               className="w-full pl-9 pr-3 py-3 bg-gray-50 border border-gray-200 rounded-xl text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/40 focus:border-indigo-400 focus:outline-none transition"
             />
             <Lock className="w-4 h-4 text-gray-400 absolute left-3 top-3.5" />

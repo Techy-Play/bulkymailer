@@ -281,7 +281,7 @@ export default function RegisterPage() {
                 <div className="relative">
                   <input type={showPassword ? "text" : "password"} value={form.password}
                     onChange={(e) => set("password", e.target.value)}
-                    placeholder="Min. 8 characters" required className={`${inputClass} pl-9 pr-10`} />
+                    placeholder="Min. 8 characters" required maxLength={20} className={`${inputClass} pl-9 pr-10`} />
                   <Lock className="w-3.5 h-3.5 text-gray-400 absolute left-3 top-3.5" />
                   <button type="button" onClick={() => setShowPassword((s) => !s)}
                     className="absolute right-3 top-3 text-gray-400 hover:text-gray-600" tabIndex={-1}>
