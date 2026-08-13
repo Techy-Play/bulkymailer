@@ -292,7 +292,8 @@ export async function sendEmail(
   html: string,
   isTestMail: boolean = false,
   fromOverride?: string | null,
-  campaignId?: string
+  campaignId?: string,
+  attachments?: any[]
 ): Promise<void> {
   const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
   const privacyUrl = `${APP_URL}/privacy`;
@@ -330,7 +331,8 @@ export async function sendEmail(
         "X-Entity-Ref-ID": `${Date.now()}`,
         ...(campaignId ? { "X-Campaign-Id": campaignId } : {})
       },
-      ...(campaignId ? { tags: [{ name: "campaign_id", value: campaignId }] } : {})
+      ...(campaignId ? { tags: [{ name: "campaign_id", value: campaignId }] } : {}),
+      ...(attachments ? { attachments } : {})
     });
 
     if (error) {
@@ -354,6 +356,7 @@ export async function sendEmail(
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
       "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
     },
+    ...(attachments ? { attachments } : {})
   });
 }
 

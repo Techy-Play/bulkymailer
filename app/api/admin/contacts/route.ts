@@ -18,6 +18,7 @@ export async function GET(req: Request) {
       orderBy: { createdAt: 'desc' },
       include: {
         organization: { select: { id: true, name: true } },
+        user: { select: { id: true, firstName: true, lastName: true, email: true } },
         _count: { select: { contacts: true } },
       },
       take: 100 // Admin safety limit

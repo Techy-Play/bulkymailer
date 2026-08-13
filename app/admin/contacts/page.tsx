@@ -1,17 +1,23 @@
 'use client'
 
 import React, { useState, useEffect, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { Contact, Search } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Contact, Search, ChevronRight } from 'lucide-react'
 
 interface ContactList {
   id: string
   name: string
   description: string | null
   createdAt: string
+  updatedAt: string
   organization: {
     id: string
     name: string
+  } | null
+  user: {
+    id: string
+    name: string
+    email: string
   }
   _count: {
     contacts: number
@@ -19,6 +25,7 @@ interface ContactList {
 }
 
 function ContactsView() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const orgId = searchParams.get('organizationId')
   const [lists, setLists] = useState<ContactList[]>([])
@@ -83,8 +90,10 @@ function ContactsView() {
               <tr>
                 <th className="px-6 py-4 font-medium">List Name</th>
                 <th className="px-6 py-4 font-medium">Organization</th>
+                <th className="px-6 py-4 font-medium">Created By</th>
                 <th className="px-6 py-4 font-medium">Total Contacts</th>
-                <th className="px-6 py-4 font-medium">Created</th>
+                <th className="px-6 py-4 font-medium">Last Updated</th>
+                <th className="px-6 py-4 font-medium text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -101,13 +110,21 @@ function ContactsView() {
                 </tr>
               ) : (
                 filteredLists.map(list => (
-                  <tr key={list.id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={list.id} 
+                    onClick={() => router.push(`/admin/contacts/${list.id}`)}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer group"
+                  >
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900">{list.name}</div>
                       {list.description && <div className="text-xs mt-0.5">{list.description}</div>}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900">
-                      {list.organization?.name || 'Unknown Org'}
+                      {list.organization?.name || 'Global System'}
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-gray-900">{list.user.name}</div>
+                      <div className="text-xs text-gray-500">{list.user.email}</div>
                     </td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
@@ -115,7 +132,10 @@ function ContactsView() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      {new Date(list.createdAt).toLocaleDateString()}
+                      {new Date(list.updatedAt).toLocaleDateString()}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                       <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-indigo-600 ml-auto transition-colors" />
                     </td>
                   </tr>
                 ))
