@@ -119,6 +119,15 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      await tx.organizationMembership.create({
+        data: {
+          userId: user.id,
+          organizationId: org.id,
+          role: "OWNER",
+          status: "ACTIVE",
+        },
+      });
+
       return { user, org };
     });
 
