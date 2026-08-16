@@ -35,8 +35,11 @@ Next.js provides both the frontend UI and the backend API routes in a single rep
 2. **🎨 Figma-Style Visual Template Editor**: A visual editor to drag and drop components, complete with a live dual-pane preview.
 3. **🚀 Campaign Management**: Wizard to construct campaigns, bind sender profiles, and dispatch asynchronously.
 4. **👥 Contact Management**: Import contacts directly via CSV/Excel parsing in the browser.
-5. **🔐 Multi-Tenant RBAC**: Users belong to Organizations. Roles (Owner, Admin, Editor, Viewer) dictate what actions they can take.
+5. **🔐 Multi-Tenant & Platform RBAC**: 
+   - **Organization RBAC**: Users belong to Organizations. Granular roles (`OWNER`, `ADMIN`, `MARKETING_MANAGER`, `VIEWER`, etc.) dictate specific permissions (e.g., `campaign.send`, `contact.edit`) using `OrganizationMembership` join models. All resources are strictly scoped by `organizationId`.
+   - **Platform RBAC**: A separate `SUPER_ADMIN` tier bypasses organization context for platform oversight, executing actions strictly under the `requireSuperAdmin()` boundary while preserving audit traceability.
 6. **🛡️ CAN-SPAM Compliance**: Automatically injects unsubscribe links and handles bounce tracking via Resend webhooks.
+7. **📝 Immutable Audit Logging**: High-stakes mutations (e.g., Super Admin interventions, ownership transfers, campaign dispatch) generate read-only `AuditLog` footprints to maintain platform integrity.
 
 ---
 
@@ -219,14 +222,17 @@ BulkyMailer utilizes Next.js App Router API endpoints (`app/api/*`). Below is an
 
 ## Super Admin (`/api/admin/*`)
 
-*All routes under `/api/admin/*` require the `User.isSuperAdmin = true` flag.*
+*All routes under `/api/admin/*` require the `User.isSuperAdmin = true` flag. These routes bypass normal organization boundaries but enforce strict resource validation and log all mutations to the `AuditLog`.*
 
 | Method | Path | Description & DB Effect |
 | :--- | :--- | :--- |
-| **GET** | `/api/admin/audit-logs` | Retrieves global `AuditLog` entries across all tenants. |
-| **GET** | `/api/admin/organizations` | Lists all organizations on the platform. |
-| **POST** | `/api/admin/system/ai` | Adjusts global AI settings or limits. |
-| **POST** | `/api/admin/templates` | Creates global "seed" templates (templates with `organizationId = null`). |
+| **GET** | `/api/admin/search` | Global search endpoint for finding Users, Orgs, Campaigns, and Templates platform-wide. |
+| **GET/PATCH/DELETE** | `/api/admin/users[/:id]` | View, suspend, or delete users (enforces org ownership safety checks). |
+| **GET/PATCH** | `/api/admin/organizations[/:id]` | Platform-wide organization oversight and workspace management. |
+| **GET/POST** | `/api/admin/organizations/[id]/campaigns/[id]/send` | Platform oversight to force-dispatch a campaign. Validates ownership and logs the override. |
+| **GET/PUT/POST/DEL**| `/api/admin/templates[/:id]` | Natively edits global public templates (`userId=null`, `orgId=null`) outside of the standard copy-on-write fork mechanics. |
+| **GET** | `/api/admin/audit-logs` | Retrieves global `AuditLog` entries across all tenants for security review. |
+| **GET** | `/api/admin/system/ai` | Inspects real-time AI provider failover health and internal registry status. |
 
 
 ---
