@@ -23,6 +23,13 @@ export default function EmailSettingsClient({ initialConfig }: { initialConfig: 
   const [testEmailAddress, setTestEmailAddress] = useState("");
 
   const handleSave = async () => {
+    if (provider === "SMTP") {
+      if (!smtpHost || !smtpPort || !smtpUsername || (!initialConfig?.encryptedSmtpPassword && !smtpPassword)) {
+        toast.error("Please fill in all SMTP fields (Host, Port, Username, Password) before saving.");
+        return;
+      }
+    }
+
     setSaving(true);
     try {
       const res = await fetch("/api/settings/email", {
