@@ -57,7 +57,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       fromOverride = `"${campaign.senderProfile.fromName}" <${campaign.senderProfile.fromEmail}>`;
     }
 
-    // 2. Mark as QUEUED and preserve edited htmlSnapshot
+    // 2. Validate Custom SMTP Configuration
+    let finalProviderConfig = campaign.organization?.emailProvider;
+    
+    if (!finalProviderConfig || finalProviderConfig.provider !== "SMTP") {
+      // Fallback: Check if user has a personal workspace with Custom SMTP configured
+      const personalOrg = await db.organization.findFirst({
+        where: { ownerUserId: userId, type: "PERSONAL" },
+        include: { emailProvider: true }
+      });
+      if (personalOrg?.emailProvider?.provider === "SMTP") {
+        finalProviderConfig = personalOrg.emailProvider;
+      } else {
+        return NextResponse.json({ error: "Custom SMTP must be configured to send campaigns." }, { status: 400 });
+      }
+    }
+
+    // 3. Mark as QUEUED and preserve edited htmlSnapshot
     await db.campaign.update({
       where: { id: campaignId },
       data: {
@@ -71,7 +87,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       }
     });
 
-    // 3. Start Async Sending Process
+    // 4. Start Async Sending Process
     (async () => {
       try {
         await db.campaign.update({ where: { id: campaignId }, data: { status: CampaignStatus.SENDING } });
@@ -111,7 +127,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               fromOverride, 
               campaignId, 
               undefined, 
-              campaign.organization?.emailProvider, 
+              finalProviderConfig, 
               campaign.senderProfile
             );
             successful++;

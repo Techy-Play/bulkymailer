@@ -28,7 +28,31 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     if (!campaign) return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
 
-    return NextResponse.json({ campaign });
+    const org = await db.organization.findUnique({
+      where: { id: orgId },
+      include: { emailProvider: true }
+    });
+    
+    let hasSmtp = false;
+    let smtpSource = "NONE";
+    let orgRole = await db.organizationMembership.findFirst({ where: { organizationId: orgId, userId } }).then(m => m?.role || "OWNER");
+    if (org?.ownerUserId === userId) orgRole = "OWNER";
+
+    if (org?.emailProvider?.provider === "SMTP") {
+      hasSmtp = true;
+      smtpSource = "ORG";
+    } else {
+      const personalOrg = await db.organization.findFirst({
+        where: { ownerUserId: userId, type: "PERSONAL" },
+        include: { emailProvider: true }
+      });
+      if (personalOrg?.emailProvider?.provider === "SMTP") {
+        hasSmtp = true;
+        smtpSource = "PERSONAL";
+      }
+    }
+
+    return NextResponse.json({ campaign, hasSmtp, smtpSource, orgRole });
   } catch (err) {
     console.error("[campaign_GET]", err);
     return NextResponse.json({ error: "Failed to fetch campaign" }, { status: 500 });

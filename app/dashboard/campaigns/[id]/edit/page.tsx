@@ -44,6 +44,10 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateItem | null>(null);
   const [editedHtml, setEditedHtml] = useState("");
 
+  const [hasSmtp, setHasSmtp] = useState(true);
+  const [smtpSource, setSmtpSource] = useState("NONE");
+  const [orgRole, setOrgRole] = useState("OWNER");
+
   const [lists, setLists] = useState<OptionItem[]>([]);
   const [selectedListId, setSelectedListId] = useState("");
 
@@ -85,6 +89,10 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
       if (sData.senderProfiles) setSenders(sData.senderProfiles);
 
       if (cData.campaign) {
+        setHasSmtp(cData.hasSmtp ?? true);
+        setSmtpSource(cData.smtpSource ?? "NONE");
+        setOrgRole(cData.orgRole ?? "OWNER");
+
         const c = cData.campaign;
         setSubject(c.subject || "");
         setCampaignName(c.campaignName || c.subject || "Untitled Campaign");
@@ -192,6 +200,10 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
 
   // Send Campaign
   const handleSend = async () => {
+    if (!hasSmtp) {
+      setErrorMessage("Custom SMTP is not configured. Please configure it in your Settings.");
+      return;
+    }
     if (!subject.trim()) {
       setErrorMessage("Please enter a subject line for your campaign.");
       return;
@@ -344,10 +356,20 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
 
             {/* SENDER */}
             <div className="p-6">
-              <label className="block text-xs uppercase text-[#6B7280] font-semibold tracking-wider mb-1">
-                SENDER
-              </label>
-              <p className="text-xs text-[#6B7280] mb-4">Who is sending this email campaign?</p>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-xs font-semibold text-[#6B7280] tracking-wider uppercase mb-1">
+                    SENDER
+                  </h4>
+                  <p className="text-xs text-[#6B7280]">
+                    Who is sending this email campaign?
+                  </p>
+                </div>
+                <Link href="/dashboard/settings/domains" target="_blank" className="text-xs font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 bg-indigo-50 px-3 py-1.5 rounded-lg transition-colors">
+                  <Plus className="w-3.5 h-3.5" />
+                  Manage Identities
+                </Link>
+              </div>
 
               {senders.length > 0 ? (
                 <select
@@ -369,21 +391,13 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
                   ))}
                 </select>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="From Name"
-                    value={senderName}
-                    onChange={(e) => setSenderName(e.target.value)}
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                  />
-                  <input
-                    type="email"
-                    placeholder="From Email"
-                    value={senderEmail}
-                    onChange={(e) => setSenderEmail(e.target.value)}
-                    className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-[#111827] text-sm focus:ring-2 focus:ring-indigo-500/30 focus:outline-none"
-                  />
+                <div className="bg-gray-50 border border-dashed border-gray-300 rounded-xl p-6 text-center">
+                  <Globe className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                  <p className="text-xs text-gray-600 font-bold mb-1">No verified sender profiles found.</p>
+                  <p className="text-[10px] text-gray-500 mb-4">You must add a Sender Identity (verified domain) to send emails.</p>
+                  <Link href="/dashboard/settings/domains" className="inline-flex items-center px-4 py-2 text-xs font-bold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition">
+                    Configure Sender Profile
+                  </Link>
                 </div>
               )}
             </div>
@@ -614,12 +628,19 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
 
             {/* Bottom Actions Footer */}
             <div className="p-4 border-t border-gray-100 bg-white flex items-center justify-between">
-              <LoadingButton variant="secondary" onClick={handleSaveDraft} loading={savingDraft}>
-                Save Draft
-              </LoadingButton>
-              <LoadingButton variant="primary" onClick={handleSend} loading={sending}>
-                Send Campaign →
-              </LoadingButton>
+              <div className="flex-1 flex justify-end gap-2">
+                {!hasSmtp && (
+                  <div className="hidden md:flex items-center text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-3 rounded-lg">
+                    SMTP Required
+                  </div>
+                )}
+                <LoadingButton variant="secondary" onClick={handleSaveDraft} loading={savingDraft}>
+                  Save Draft
+                </LoadingButton>
+                <LoadingButton variant="primary" onClick={handleSend} loading={sending} disabled={!hasSmtp}>
+                  Send Campaign →
+                </LoadingButton>
+              </div>
             </div>
           </div>
         </div>
