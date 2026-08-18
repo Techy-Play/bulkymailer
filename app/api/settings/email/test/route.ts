@@ -5,6 +5,23 @@ import { decrypt } from "@/lib/encryption";
 import nodemailer from "nodemailer";
 import { sendEmail } from "@/lib/mailer";
 
+function getHelpfulErrorMessage(errMessage: string): string {
+  const msg = errMessage.toLowerCase();
+  if (msg.includes("wrong version number")) {
+    return "SSL/TLS version mismatch. If using port 587, try unchecking 'Use Secure Connection'. If using port 465, make sure it is checked.";
+  }
+  if (msg.includes("invalid login") || msg.includes("535")) {
+    return "Authentication failed. If using Gmail or Zoho, you must generate and use an 'App Password' instead of your normal account password.";
+  }
+  if (msg.includes("etimedout") || msg.includes("timeout")) {
+    return "Connection timed out. Your SMTP host may be blocking the connection, or you may be using the wrong port.";
+  }
+  if (msg.includes("self signed certificate")) {
+    return "Certificate error. Your SMTP server is using a self-signed certificate which is not trusted by the server.";
+  }
+  return errMessage;
+}
+
 export async function POST(req: Request) {
   try {
     const orgContext = await requireActiveOrganization();
@@ -57,7 +74,8 @@ export async function POST(req: Request) {
           await transporter.verify();
         } catch (err: any) {
           console.error("SMTP verification failed", err);
-          return NextResponse.json({ success: false, error: "SMTP Connection failed: " + err.message }, { status: 400 });
+          const helpfulMsg = getHelpfulErrorMessage(err.message || "");
+          return NextResponse.json({ success: false, error: "SMTP Connection failed: " + helpfulMsg }, { status: 400 });
         }
       }
     }
@@ -77,7 +95,8 @@ export async function POST(req: Request) {
         );
       } catch (err: any) {
         console.error("Test email send failed", err);
-        return NextResponse.json({ success: false, error: "Failed to send test email: " + err.message }, { status: 400 });
+        const helpfulMsg = getHelpfulErrorMessage(err.message || "");
+        return NextResponse.json({ success: false, error: "Failed to send test email: " + helpfulMsg }, { status: 400 });
       }
     }
 
