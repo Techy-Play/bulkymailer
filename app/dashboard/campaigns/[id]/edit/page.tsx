@@ -86,7 +86,7 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         setTemplates(tData.templates);
       }
       if (lData.lists) setLists(lData.lists);
-      if (sData.senderProfiles) setSenders(sData.senderProfiles);
+      if (sData.profiles) setSenders(sData.profiles);
 
       if (cData.campaign) {
         setHasSmtp(cData.hasSmtp ?? true);
@@ -103,9 +103,9 @@ export default function EditCampaignPage({ params }: { params: Promise<{ id: str
         if (c.senderProfile) {
           setSenderName(c.senderProfile.fromName);
           setSenderEmail(c.senderProfile.fromEmail);
-        } else if (sData.senderProfiles && sData.senderProfiles.length > 0) {
-          setSenderName(sData.senderProfiles[0].fromName);
-          setSenderEmail(sData.senderProfiles[0].fromEmail);
+        } else if (sData.profiles && sData.profiles.length > 0) {
+          setSenderName(sData.profiles[0].fromName);
+          setSenderEmail(sData.profiles[0].fromEmail);
         }
 
         if (c.template) {

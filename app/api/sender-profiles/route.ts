@@ -25,6 +25,43 @@ export async function GET(req: NextRequest) {
       ]
     });
 
+    const org = await db.organization.findUnique({
+      where: { id: orgId },
+      include: { emailProvider: true }
+    });
+
+    if (org?.emailProvider?.fromEmail && org?.emailProvider?.provider === "SMTP") {
+      profiles.push({
+        id: "smtp_org_default",
+        userId: org.ownerUserId || userId,
+        organizationId: orgId,
+        fromName: org.emailProvider.fromName || "Org SMTP Default",
+        fromEmail: org.emailProvider.fromEmail,
+        replyTo: org.emailProvider.replyTo || null,
+        isDefault: profiles.length === 0,
+        createdAt: org.emailProvider.createdAt,
+        updatedAt: org.emailProvider.updatedAt
+      } as any);
+    } else if (!org?.emailProvider || org?.emailProvider?.provider !== "SMTP") {
+      const personalOrg = await db.organization.findFirst({
+        where: { ownerUserId: userId, type: "PERSONAL" },
+        include: { emailProvider: true }
+      });
+      if (personalOrg?.emailProvider?.fromEmail && personalOrg?.emailProvider?.provider === "SMTP") {
+        profiles.push({
+          id: "smtp_personal_default",
+          userId,
+          organizationId: orgId,
+          fromName: personalOrg.emailProvider.fromName || "Personal SMTP Default",
+          fromEmail: personalOrg.emailProvider.fromEmail,
+          replyTo: personalOrg.emailProvider.replyTo || null,
+          isDefault: profiles.length === 0,
+          createdAt: personalOrg.emailProvider.createdAt,
+          updatedAt: personalOrg.emailProvider.updatedAt
+        } as any);
+      }
+    }
+
     return NextResponse.json({ profiles });
   } catch (err) {
     console.error("[sender_profiles_GET]", err);
