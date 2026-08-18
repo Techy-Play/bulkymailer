@@ -557,21 +557,19 @@ BulkyMailer automatically injects mandatory anti-spam elements if they are missi
 ### Quota Checks
 Before sending each email in the loop, the system calls `checkAndIncrementEmailQuota` to enforce platform tier limits.
 
-## 3. Domain Authentication & Sender Profiles
+## 3. Custom SMTP & Domain Authentication
 
-High deliverability requires strict domain authentication.
+High deliverability requires strict domain authentication and dedicated sending infrastructure.
 
-### Current Implementation (Shared Domain)
-Currently, all emails are routed through a central, highly-reputable verified domain: `send.au-acadex.com`.
-The platform enforces strict authentication on this domain:
-- **SPF:** Authorizes Resend and AWS SES to send on behalf of the domain (`v=spf1 include:amazonses.com include:resend.com ~all`).
-- **DKIM:** Cryptographically signs outbound emails.
-- **DMARC:** Specifies the policy for handling failures (`p=none`).
+### Custom SMTP Enforcement
+To protect the platform's shared reputation and ensure users take ownership of their own email delivery, BulkyMailer **strictly enforces Custom SMTP configuration** for bulk campaigns.
+- The global shared Resend fallback is disabled for bulk sending.
+- Every Organization must configure their own SMTP credentials (e.g., Google Workspace, AWS SES, Mailgun) in the Settings page to dispatch campaigns.
+- If an Organization administrator has not configured SMTP, members can seamlessly fallback to using the private Custom SMTP configuration from their **Personal Workspace**.
 
-**Sender Profiles** allow users to define a "From Name" and a "Reply-To" address, but the actual sending address is rewritten to align with the verified domain to pass DMARC alignment (e.g., `"Acme Corp" <acme@send.au-acadex.com>`).
-
-### Planned Architecture (Custom Domains)
-As seen in `app/dashboard/settings/domains/page.tsx`, the system is preparing for custom sending domains. This will allow organizations to add their own DNS records (SPF/DKIM/DMARC) via the Resend API, enabling fully whitelabeled outbound emails (e.g., `marketing@acmecorp.com`).
+### Sender Identities (Profiles)
+Sender Profiles allow users to define a "From Name" and a "Reply-To" address. 
+When a user configures their Custom SMTP, their default sending domain is automatically synthesized into a selectable Sender Identity within the Campaign Editor, ensuring a frictionless setup process. Users can also add additional verified domains if their SMTP provider permits sending on behalf of other addresses.
 
 
 ---
