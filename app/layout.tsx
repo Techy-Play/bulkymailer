@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import localFont from "next/font/local";
+import { Toaster } from "sonner";
 import "./globals.css";
 
 const polarSans = localFont({
@@ -212,6 +213,7 @@ export default function RootLayout({
         />
       </head>
       <body suppressHydrationWarning className="min-h-full flex flex-col bg-[#FAFAFA] text-[#111827] selection:bg-indigo-500 selection:text-white font-sans">
+        <Toaster position="top-right" richColors />
         {children}
       </body>
     </html>
