@@ -78,7 +78,12 @@ export async function POST(req: Request) {
     };
 
     if (smtpPassword && smtpPassword !== "********") {
-      dataToUpdate.encryptedSmtpPassword = encrypt(smtpPassword);
+      try {
+        dataToUpdate.encryptedSmtpPassword = encrypt(smtpPassword);
+      } catch (err: any) {
+        console.error("Encryption error:", err);
+        return new NextResponse(err.message || "Failed to encrypt password", { status: 400 });
+      }
     }
 
     const config = await db.emailProviderConfiguration.upsert({
