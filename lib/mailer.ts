@@ -99,8 +99,9 @@ export function renderTemplateMergeTags(
 
 /**
  * Gets a clean, SPF/DKIM aligned FROM address matching verified domain send.au-acadex.com
+ * If allowCustomDomain is true, it does not rewrite the domain.
  */
-export function getFromHeader(fromOverride?: string | null): string {
+export function getFromHeader(fromOverride?: string | null, allowCustomDomain: boolean = false): string {
   if (fromOverride && fromOverride.trim()) {
     let name = "BulkyMailer";
     let email = fromOverride.trim();
@@ -113,7 +114,7 @@ export function getFromHeader(fromOverride?: string | null): string {
       }
     }
 
-    if (!email.endsWith(`@${VERIFIED_DOMAIN}`)) {
+    if (!allowCustomDomain && !email.endsWith(`@${VERIFIED_DOMAIN}`)) {
       const localPart = email.split("@")[0] || "hello";
       email = `${localPart}@${VERIFIED_DOMAIN}`;
     }
@@ -319,12 +320,19 @@ export async function sendEmail(
   const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
   const privacyUrl = `${APP_URL}/privacy`;
   
+  // Use Dynamic Provider if specified
+  const isSmtp = providerConfig?.provider === "SMTP";
+
   // Determine Sender Identity
   let finalFromName = senderProfile?.fromName || providerConfig?.fromName;
   let finalFromEmail = senderProfile?.fromEmail || providerConfig?.fromEmail;
-  let finalReplyTo = senderProfile?.replyTo || providerConfig?.replyTo || `support@${VERIFIED_DOMAIN}`;
+  if (isSmtp && !finalFromEmail) {
+    finalFromEmail = providerConfig?.smtpUsername;
+  }
   
-  let fromHeader = getFromHeader(fromOverride);
+  let finalReplyTo = senderProfile?.replyTo || providerConfig?.replyTo || (isSmtp && finalFromEmail ? finalFromEmail : `support@${VERIFIED_DOMAIN}`);
+  
+  let fromHeader = getFromHeader(fromOverride, isSmtp);
   if (finalFromName && finalFromEmail) {
     fromHeader = `"${finalFromName}" <${finalFromEmail}>`;
   } else if (finalFromEmail) {
@@ -346,9 +354,6 @@ export async function sendEmail(
   }
 
   const plainText = htmlToPlainText(finalHtml);
-
-  // Use Dynamic Provider if specified
-  const isSmtp = providerConfig?.provider === "SMTP";
   
   if (isSmtp) {
     if (!providerConfig?.smtpHost || !providerConfig?.encryptedSmtpPassword) {
@@ -456,9 +461,10 @@ export async function sendBulkEmailWithResend(
   // Determine Sender Identity for bulk
   let finalFromName = senderProfile?.fromName || providerConfig?.fromName;
   let finalFromEmail = senderProfile?.fromEmail || providerConfig?.fromEmail;
+  
   let finalReplyTo = senderProfile?.replyTo || providerConfig?.replyTo || `support@${VERIFIED_DOMAIN}`;
   
-  let fromHeader = getFromHeader(fromOverride);
+  let fromHeader = getFromHeader(fromOverride, false); // isSmtp is false here
   if (finalFromName && finalFromEmail) {
     fromHeader = `"${finalFromName}" <${finalFromEmail}>`;
   } else if (finalFromEmail) {
