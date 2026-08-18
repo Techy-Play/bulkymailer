@@ -110,12 +110,9 @@ export default async function VerifiedDomainsPage() {
               <div>
                 <h3 className="text-xl font-bold text-[#111827] flex items-center gap-3">
                   Use your own sending domain
-                  <span className="px-2.5 py-1 rounded-full text-[10px] uppercase font-bold tracking-wider bg-indigo-100 text-indigo-700 border border-indigo-200">
-                    Coming Soon
-                  </span>
                 </h3>
                 <p className="text-[#6B7280] mt-2 leading-relaxed">
-                  Connect your organization's own domain and send emails from your own branded addresses. Custom domain support is currently being prepared.
+                  Connect your organization's own domain and send emails from your own branded addresses. You can do this by configuring a Custom SMTP server in your Email Delivery settings.
                 </p>
               </div>
 
@@ -157,9 +154,9 @@ export default async function VerifiedDomainsPage() {
             </div>
             
             <div className="flex-shrink-0 w-full sm:w-auto">
-              <button disabled className="w-full sm:w-auto px-6 py-3 bg-white text-gray-400 font-bold rounded-xl cursor-not-allowed border border-gray-200 shadow-sm flex items-center justify-center gap-2">
-                Custom Domain — Coming Soon
-              </button>
+              <Link href="/dashboard/settings/email" className="w-full sm:w-auto px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl border border-transparent shadow-sm flex items-center justify-center gap-2 transition">
+                Configure Custom SMTP
+              </Link>
             </div>
           </div>
         </div>
