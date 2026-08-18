@@ -24,6 +24,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       include: {
         template: true,
         senderProfile: true,
+        organization: {
+          include: { emailProvider: true }
+        },
         contactList: {
           include: { contacts: true }
         }
@@ -99,8 +102,18 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
               customFields: contact.customFields as any,
             });
 
-            // Send Email via Resend with custom verified domain send.au-acadex.com
-            await sendEmail(contact.email, subject, personalizedHtml, false, fromOverride, campaignId);
+            // Send Email via Resend or SMTP with custom verified domain
+            await sendEmail(
+              contact.email, 
+              subject, 
+              personalizedHtml, 
+              false, 
+              fromOverride, 
+              campaignId, 
+              undefined, 
+              campaign.organization?.emailProvider, 
+              campaign.senderProfile
+            );
             successful++;
           } catch (err) {
             console.error(`[campaign_send] Failed for ${contact.email}`, err);

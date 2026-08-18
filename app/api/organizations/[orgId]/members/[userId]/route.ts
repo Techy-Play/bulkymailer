@@ -38,6 +38,10 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (context.organization.type === "PERSONAL") {
+      return NextResponse.json({ error: "Personal workspaces do not support members." }, { status: 403 });
+    }
+
     // 2. Fetch target membership
     const targetMembership = await db.organizationMembership.findUnique({
       where: { organizationId_userId: { organizationId: orgId, userId } },

@@ -1,5 +1,24 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
+import { decrypt } from "./encryption";
+
+export interface ProviderConfig {
+  provider: "RESEND" | "SMTP";
+  smtpHost?: string | null;
+  smtpPort?: number | null;
+  smtpUsername?: string | null;
+  encryptedSmtpPassword?: string | null;
+  smtpSecure?: boolean;
+  fromName?: string | null;
+  fromEmail?: string | null;
+  replyTo?: string | null;
+}
+
+export interface SenderIdentity {
+  fromName: string;
+  fromEmail: string;
+  replyTo?: string | null;
+}
 
 const resendApiKey = process.env.RESEND_API_KEY;
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
@@ -293,11 +312,24 @@ export async function sendEmail(
   isTestMail: boolean = false,
   fromOverride?: string | null,
   campaignId?: string,
-  attachments?: any[]
+  attachments?: any[],
+  providerConfig?: ProviderConfig | null,
+  senderProfile?: SenderIdentity | null
 ): Promise<void> {
   const unsubscribeUrl = `${APP_URL}/unsubscribe?email=${encodeURIComponent(to)}`;
   const privacyUrl = `${APP_URL}/privacy`;
-  const fromHeader = getFromHeader(fromOverride);
+  
+  // Determine Sender Identity
+  let finalFromName = senderProfile?.fromName || providerConfig?.fromName;
+  let finalFromEmail = senderProfile?.fromEmail || providerConfig?.fromEmail;
+  let finalReplyTo = senderProfile?.replyTo || providerConfig?.replyTo || `support@${VERIFIED_DOMAIN}`;
+  
+  let fromHeader = getFromHeader(fromOverride);
+  if (finalFromName && finalFromEmail) {
+    fromHeader = `"${finalFromName}" <${finalFromEmail}>`;
+  } else if (finalFromEmail) {
+    fromHeader = finalFromEmail;
+  }
 
   // Compliant Anti-Spam Footer matching exact application APP_URL domain
   let finalHtml = html;
@@ -314,6 +346,48 @@ export async function sendEmail(
   }
 
   const plainText = htmlToPlainText(finalHtml);
+
+  // Use Dynamic Provider if specified
+  const isSmtp = providerConfig?.provider === "SMTP";
+  
+  if (isSmtp) {
+    if (!providerConfig?.smtpHost || !providerConfig?.encryptedSmtpPassword) {
+      throw new Error("Incomplete SMTP configuration");
+    }
+    
+    let pass = "";
+    try {
+      pass = decrypt(providerConfig.encryptedSmtpPassword);
+    } catch (e) {
+      throw new Error("Invalid SMTP credentials configuration");
+    }
+
+    const dynamicTransporter = nodemailer.createTransport({
+      host: providerConfig.smtpHost,
+      port: providerConfig.smtpPort || 587,
+      secure: providerConfig.smtpSecure ?? false,
+      auth: {
+        user: providerConfig.smtpUsername || "",
+        pass: pass,
+      },
+    });
+
+    await dynamicTransporter.sendMail({
+      from: fromHeader,
+      to,
+      replyTo: finalReplyTo,
+      subject,
+      html: finalHtml,
+      text: plainText,
+      headers: {
+        "List-Unsubscribe": `<${unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+        "Feedback-ID": `campaign:bulkymailer:${VERIFIED_DOMAIN}`,
+      },
+      ...(attachments ? { attachments } : {})
+    });
+    return;
+  }
 
   // 1. Resend Engine
   if (resend) {
@@ -367,15 +441,28 @@ export async function sendEmail(
 export async function sendBulkEmailWithResend(
   emails: Array<{ to: string; subject: string; html: string }>,
   fromOverride?: string | null,
-  campaignId?: string
+  campaignId?: string,
+  providerConfig?: ProviderConfig | null,
+  senderProfile?: SenderIdentity | null
 ) {
-  const fromHeader = getFromHeader(fromOverride);
-
-  if (!resend) {
+  // If provider is SMTP or Resend is not configured globally, fallback to loop
+  if (providerConfig?.provider === "SMTP" || !resend) {
     for (const item of emails) {
-      await sendEmail(item.to, item.subject, item.html, false, fromOverride, campaignId);
+      await sendEmail(item.to, item.subject, item.html, false, fromOverride, campaignId, undefined, providerConfig, senderProfile);
     }
     return;
+  }
+
+  // Determine Sender Identity for bulk
+  let finalFromName = senderProfile?.fromName || providerConfig?.fromName;
+  let finalFromEmail = senderProfile?.fromEmail || providerConfig?.fromEmail;
+  let finalReplyTo = senderProfile?.replyTo || providerConfig?.replyTo || `support@${VERIFIED_DOMAIN}`;
+  
+  let fromHeader = getFromHeader(fromOverride);
+  if (finalFromName && finalFromEmail) {
+    fromHeader = `"${finalFromName}" <${finalFromEmail}>`;
+  } else if (finalFromEmail) {
+    fromHeader = finalFromEmail;
   }
 
   const batchPayload = emails.map((item) => {
@@ -396,7 +483,7 @@ export async function sendBulkEmailWithResend(
 
     return {
       from: fromHeader,
-      replyTo: `support@${VERIFIED_DOMAIN}`,
+      replyTo: finalReplyTo,
       to: item.to,
       subject: item.subject,
       html: finalHtml,

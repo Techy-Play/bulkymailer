@@ -27,8 +27,17 @@ export default async function DashboardLayout({
       where: { userId: user.id, status: "ACTIVE" },
       include: { organization: true },
     });
+    
+    const personalOrgs = await db.organization.findMany({
+      where: { ownerUserId: user.id, type: "PERSONAL" }
+    });
+    
+    const allAvailableOrgs = [
+      ...personalOrgs.map(org => ({ organization: org, role: "OWNER" as const })),
+      ...memberships.map(m => ({ organization: m.organization, role: m.role }))
+    ];
 
-    if (memberships.length === 0) {
+    if (allAvailableOrgs.length === 0) {
       return (
         <div className="flex h-screen w-full items-center justify-center bg-gray-50">
           <div className="max-w-md p-8 bg-white rounded-lg shadow text-center">
@@ -39,24 +48,45 @@ export default async function DashboardLayout({
       );
     }
 
-    if (memberships.length === 1) {
+    if (allAvailableOrgs.length === 1) {
       // Auto-initialize if exactly one
-      return <AutoInitializeOrganization organizationId={memberships[0].organizationId} />;
+      return <AutoInitializeOrganization organizationId={allAvailableOrgs[0].organization.id} />;
     }
 
     // If multiple memberships and none active, show selector
+    // Note: The OrganizationSelector takes standard memberships, so we map our combined list to match the expected shape
+    const combinedMemberships = allAvailableOrgs.map(item => ({
+      id: item.organization.id, // Using org id as proxy id for the selector
+      organizationId: item.organization.id,
+      userId: user.id,
+      role: item.role,
+      status: "ACTIVE" as const,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      organization: item.organization
+    }));
+
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-gray-50 p-4">
-        <OrganizationSelector memberships={memberships} />
+        <OrganizationSelector memberships={combinedMemberships} />
       </div>
     );
   }
 
   // Gather all memberships for the organization switcher dropdown in the shell
-  const allMemberships = await db.organizationMembership.findMany({
+  const memberships = await db.organizationMembership.findMany({
     where: { userId: user.id, status: "ACTIVE" },
     include: { organization: true },
   });
+  
+  const personalOrgs = await db.organization.findMany({
+    where: { ownerUserId: user.id, type: "PERSONAL" }
+  });
+  
+  const allAvailableOrgs = [
+    ...personalOrgs.map(org => ({ organization: org, role: "OWNER" as const })),
+    ...memberships.map(m => ({ organization: m.organization, role: m.role }))
+  ];
 
   return (
     <DashboardShell
@@ -73,7 +103,7 @@ export default async function DashboardLayout({
       }}
       orgName={orgContext.organization.name}
       activeOrganizationId={orgContext.organization.id}
-      availableOrganizations={allMemberships.map(m => ({
+      availableOrganizations={allAvailableOrgs.map(m => ({
         id: m.organization.id,
         name: m.organization.name,
       }))}

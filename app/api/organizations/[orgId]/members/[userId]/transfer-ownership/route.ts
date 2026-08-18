@@ -16,6 +16,10 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (context.organization.type === "PERSONAL") {
+      return NextResponse.json({ error: "Cannot transfer ownership of a personal workspace" }, { status: 403 });
+    }
+
     const targetMembership = await db.organizationMembership.findUnique({
       where: { organizationId_userId: { organizationId: orgId, userId } },
     });

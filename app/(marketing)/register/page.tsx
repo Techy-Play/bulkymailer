@@ -11,9 +11,10 @@ import { LoadingButton } from "@/components/ui/loading-button";
 import { COUNTRIES, Country } from "@/components/ui/country-data";
 import { PhoneCountrySelect } from "@/components/ui/searchable-select";
 
-type Step = 0 | 1 | 2;
+type Step = 0 | 1 | 2 | 3;
 
-const STEPS = ["Personal Info", "Organization", "Business Profile"];
+const STEPS_ORG = ["Personal Info", "Workspace", "Organization", "Business Profile"];
+const STEPS_PERSONAL = ["Personal Info", "Workspace"];
 
 const TEAM_SIZES = [
   { value: "SOLO", label: "Just me" },
@@ -31,10 +32,10 @@ const CONTACT_RANGES = [
   { value: "ABOVE_50K", label: "50K+" },
 ];
 
-function StepIndicator({ step }: { step: Step }) {
+function StepIndicator({ step, steps }: { step: Step; steps: string[] }) {
   return (
     <div className="flex items-center justify-between mb-8 px-1">
-      {STEPS.map((label, i) => (
+      {steps.map((label, i) => (
         <div key={label} className="flex items-center gap-2 flex-1">
           <div className="flex flex-col items-center gap-1 flex-1">
             <div
@@ -56,7 +57,7 @@ function StepIndicator({ step }: { step: Step }) {
               {label}
             </span>
           </div>
-          {i < STEPS.length - 1 && (
+          {i < steps.length - 1 && (
             <div
               className={`flex-1 h-0.5 mx-2 rounded mb-4 ${
                 i < step ? "bg-indigo-600" : "bg-gray-200"
@@ -111,7 +112,9 @@ export default function RegisterPage() {
     lastName: "",
     email: "",
     password: "",
-    // Step 1 — Organization
+    // Step 1 — Workspace Mode
+    workspaceType: "ORGANIZATION" as "PERSONAL" | "ORGANIZATION",
+    // Step 2 — Organization
     companyName: "",
     website: "",
     addressLine1: "",
@@ -155,6 +158,10 @@ export default function RegisterPage() {
       );
     }
     if (step === 1) {
+      return true; // Just a radio selection, always valid
+    }
+    if (step === 2) {
+      if (form.workspaceType === "PERSONAL") return true; // Should not reach here, but just in case
       return (
         form.companyName.trim().length > 0 &&
         form.addressLine1.trim().length > 0 &&
@@ -163,11 +170,15 @@ export default function RegisterPage() {
         form.country.trim().length > 0
       );
     }
-    if (step === 2) {
+    if (step === 3) {
+      if (form.workspaceType === "PERSONAL") return true;
       return !!form.teamSize && !!form.contactRange && form.sellsOnline !== null;
     }
     return true;
   }
+
+  const currentSteps = form.workspaceType === "PERSONAL" ? STEPS_PERSONAL : STEPS_ORG;
+  const isFinalStep = step === currentSteps.length - 1;
 
   async function handleSubmit() {
     setLoading(true);
@@ -218,7 +229,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
-          <StepIndicator step={step} />
+          <StepIndicator step={step} steps={currentSteps} />
 
           {error && (
             <div className="mb-5 p-3 rounded-xl bg-red-50 border border-red-100 text-sm text-red-700">
@@ -302,8 +313,69 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── Step 1: Organization & Address ── */}
+          {/* ── Step 1: Workspace Mode ── */}
           {step === 1 && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
+                  <Building2 className="w-5 h-5 text-indigo-600" />
+                </div>
+                <div>
+                  <p className="font-bold text-[#111827]">How do you want to use BulkyMailer?</p>
+                  <p className="text-xs text-[#6B7280]">You can use it independently or with a team</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 mt-6">
+                <button
+                  type="button"
+                  onClick={() => set("workspaceType", "PERSONAL")}
+                  className={`flex items-start p-4 border rounded-xl transition-all text-left ${
+                    form.workspaceType === "PERSONAL"
+                      ? "border-indigo-600 bg-indigo-50/50 shadow-[0_0_0_1px_#4f46e5]"
+                      : "border-gray-200 hover:border-indigo-300 bg-white"
+                  }`}
+                >
+                  <div className="mr-4 mt-1">
+                    <User className={`w-5 h-5 ${form.workspaceType === "PERSONAL" ? "text-indigo-600" : "text-gray-400"}`} />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-sm ${form.workspaceType === "PERSONAL" ? "text-indigo-900" : "text-gray-900"}`}>
+                      Personal Workspace
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Use BulkyMailer independently. No organization members or invitations.
+                    </p>
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => set("workspaceType", "ORGANIZATION")}
+                  className={`flex items-start p-4 border rounded-xl transition-all text-left ${
+                    form.workspaceType === "ORGANIZATION"
+                      ? "border-indigo-600 bg-indigo-50/50 shadow-[0_0_0_1px_#4f46e5]"
+                      : "border-gray-200 hover:border-indigo-300 bg-white"
+                  }`}
+                >
+                  <div className="mr-4 mt-1">
+                    <Users className={`w-5 h-5 ${form.workspaceType === "ORGANIZATION" ? "text-indigo-600" : "text-gray-400"}`} />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-sm ${form.workspaceType === "ORGANIZATION" ? "text-indigo-900" : "text-gray-900"}`}>
+                      Create an Organization
+                    </h3>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Collaborate with a team, invite members, and manage roles.
+                    </p>
+                  </div>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 2: Organization & Address ── */}
+          {step === 2 && form.workspaceType === "ORGANIZATION" && (
             <div className="space-y-4">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
@@ -375,8 +447,8 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── Step 2: Business Profile ── */}
-          {step === 2 && (
+          {/* ── Step 3: Business Profile ── */}
+          {step === 3 && form.workspaceType === "ORGANIZATION" && (
             <div className="space-y-5">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-9 h-9 rounded-lg bg-indigo-50 border border-indigo-100 flex items-center justify-center">
@@ -447,7 +519,7 @@ export default function RegisterPage() {
               <div />
             )}
 
-            {step < 2 ? (
+            {!isFinalStep ? (
               <button type="button" onClick={() => setStep((s) => (s + 1) as Step)}
                 disabled={!canAdvance()}
                 className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm">

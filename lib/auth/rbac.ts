@@ -36,7 +36,12 @@ export type Permission =
   | "media.delete"
   
   // Analytics
-  | "analytics.view";
+  | "analytics.view"
+
+  // Email Provider Settings (Workspace-level SMTP/Resend)
+  | "email_provider.view"
+  | "email_provider.configure"
+  | "email_provider.test";
 
 /**
  * Maps each OrgRole to its permitted actions.
@@ -49,7 +54,8 @@ export const ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     "contact.view", "contact.import", "contact.edit", "contact.delete",
     "template.view", "template.create", "template.edit", "template.publish", "template.delete",
     "media.view", "media.upload", "media.delete",
-    "analytics.view"
+    "analytics.view",
+    "email_provider.view", "email_provider.configure", "email_provider.test"
   ],
   ADMIN: [
     "organization.settings",
@@ -58,7 +64,8 @@ export const ROLE_PERMISSIONS: Record<OrgRole, Permission[]> = {
     "contact.view", "contact.import", "contact.edit", "contact.delete",
     "template.view", "template.create", "template.edit", "template.publish", "template.delete",
     "media.view", "media.upload", "media.delete",
-    "analytics.view"
+    "analytics.view",
+    "email_provider.view", "email_provider.configure", "email_provider.test"
   ],
   MARKETING_MANAGER: [
     "member.view", "member.invite", // Can invite but usually not remove or change roles arbitrarily

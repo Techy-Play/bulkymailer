@@ -73,9 +73,26 @@ export async function requireActiveOrganization(): Promise<OrganizationContext |
   });
 
   if (!membership || membership.status !== "ACTIVE") {
-    // If membership is revoked/suspended, the context is stale.
-    // We cannot clear the cookie here (Server Component context), 
-    // but returning null will force the layout to re-evaluate available orgs.
+    // If membership is missing or not active, check if it's a personal workspace owned by the user
+    const potentialOrg = await db.organization.findUnique({
+      where: { id: orgId }
+    });
+
+    if (potentialOrg && potentialOrg.type === "PERSONAL") {
+      if (potentialOrg.ownerUserId !== user.id) {
+        return null; // Strict isolation: users cannot access someone else's personal workspace
+      }
+      
+      // Implicit OWNER role for personal workspaces
+      return {
+        user,
+        organization: potentialOrg,
+        membership: null as any, // Not used in personal workspaces
+        role: "OWNER" as const
+      };
+    }
+
+    // Not a personal workspace, and no active membership.
     return null;
   }
 
@@ -108,6 +125,22 @@ export async function requireOrganizationMembership(orgId: string) {
   });
 
   if (!membership || membership.status !== "ACTIVE") {
+    const potentialOrg = await db.organization.findUnique({
+      where: { id: orgId }
+    });
+
+    if (potentialOrg && potentialOrg.type === "PERSONAL") {
+      if (potentialOrg.ownerUserId !== user.id) {
+        return null; // Reject access
+      }
+      return { 
+        user, 
+        organization: potentialOrg, 
+        membership: null as any, 
+        role: "OWNER" as const 
+      };
+    }
+
     return null;
   }
   

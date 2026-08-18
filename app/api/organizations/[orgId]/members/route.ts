@@ -15,6 +15,10 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    if (context.organization.type === "PERSONAL") {
+      return NextResponse.json({ error: "Personal workspaces do not support members." }, { status: 403 });
+    }
+
     const memberships = await db.organizationMembership.findMany({
       where: { organizationId: orgId },
       include: {

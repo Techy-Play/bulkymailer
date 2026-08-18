@@ -92,15 +92,15 @@ export default async function AdminOrganizationWorkspacePage({ params }: { param
               <div className="text-sm text-gray-900 space-y-1.5 mt-2">
                 <div className="flex justify-between">
                   <span className="text-gray-500">Team Size:</span>
-                  <span className="font-medium">{org.teamSize.replace(/_/g, ' ')}</span>
+                  <span className="font-medium">{org.teamSize?.replace(/_/g, ' ') || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Contacts:</span>
-                  <span className="font-medium">{org.contactRange.replace(/_/g, ' ')}</span>
+                  <span className="font-medium">{org.contactRange?.replace(/_/g, ' ') || 'N/A'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">E-Commerce:</span>
-                  <span className="font-medium">{org.sellsOnline ? 'Yes' : 'No'}</span>
+                  <span className="font-medium">{org.sellsOnline === null ? 'N/A' : org.sellsOnline ? 'Yes' : 'No'}</span>
                 </div>
               </div>
             </div>

@@ -23,21 +23,36 @@ export async function POST(req: NextRequest) {
 
     const { organizationId } = result.data;
 
-    // Verify membership exists and is active
-    const membership = await db.organizationMembership.findUnique({
-      where: {
-        organizationId_userId: {
-          organizationId,
-          userId: user.id,
-        },
-      },
-      include: {
-        organization: true,
-      },
+    // Verify membership exists and is active, OR it's a personal workspace owned by the user
+    const targetOrg = await db.organization.findUnique({
+      where: { id: organizationId }
     });
 
-    if (!membership || membership.status !== "ACTIVE") {
-      return NextResponse.json({ error: "Forbidden: Not an active member of this organization" }, { status: 403 });
+    if (!targetOrg) {
+      return NextResponse.json({ error: "Organization not found" }, { status: 404 });
+    }
+
+    let role = "MEMBER";
+
+    if (targetOrg.type === "PERSONAL") {
+      if (targetOrg.ownerUserId !== user.id) {
+        return NextResponse.json({ error: "Forbidden: Not an active member of this organization" }, { status: 403 });
+      }
+      role = "OWNER";
+    } else {
+      const membership = await db.organizationMembership.findUnique({
+        where: {
+          organizationId_userId: {
+            organizationId,
+            userId: user.id,
+          },
+        },
+      });
+
+      if (!membership || membership.status !== "ACTIVE") {
+        return NextResponse.json({ error: "Forbidden: Not an active member of this organization" }, { status: 403 });
+      }
+      role = membership.role;
     }
 
     // Set the cookie
@@ -59,8 +74,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      organization: membership.organization,
-      role: membership.role
+      organization: targetOrg,
+      role: role
     });
 
   } catch (error) {
