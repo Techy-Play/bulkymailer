@@ -72,7 +72,7 @@ export default function EmailSettingsClient({ initialConfig }: { initialConfig: 
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Connection failed.");
+        throw new Error(data.error || data.message || "Connection failed.");
       }
       toast.success(data.message || "Connection successful!");
     } catch (error: any) {
@@ -96,7 +96,7 @@ export default function EmailSettingsClient({ initialConfig }: { initialConfig: 
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data.message || "Failed to send test email.");
+        throw new Error(data.error || data.message || "Failed to send test email.");
       }
       toast.success(data.message || "Test email sent!");
     } catch (error: any) {
